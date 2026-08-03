@@ -1,4 +1,4 @@
-name: Deploy console to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -21,38 +21,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-
-      # The console consumes the SDK via `file:../sdk`, so the SDK must be
-      # built first — `dist/` is not committed.
-      - name: Build SDK
-        working-directory: sdk
-        run: npm ci && npm run build
-
-      - name: Test SDK
-        working-directory: sdk
-        run: npm test
-
-      - name: Install console
-        working-directory: console
-        run: npm ci
-
-      - name: Test console
-        working-directory: console
-        run: npm test
-
-      - name: Build console
-        working-directory: console
-        run: npm run build
-
+      - run: npm ci
+      # `build` runs tsc --noEmit first, so a type error fails the deploy.
+      - run: npm run build
       - uses: actions/configure-pages@v5
-
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: console/dist
+          path: dist
 
   deploy:
     needs: build
