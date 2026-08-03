@@ -1,6 +1,6 @@
-# Dodge & Collect — Feel, Excitement & Progression
+# The Herd — Feel, Excitement & Progression
 
-**Companion to [`dodge-collect.md`](./dodge-collect.md).** That document specifies *what
+**Companion to [`the-herd.md`](./the-herd.md).** That document specifies *what
 the game is made of* — obstacle taxonomy, latency budget, scene graph, SDK calls.
 This one specifies *why it is thrilling and why you come back*: the moment-to-moment
 feel, the escalation inside a run, the arc across a session, and the arc across weeks.
@@ -60,9 +60,9 @@ Three to five runs with 60–90s between is a 12–18 minute HIIT session at rou
 
 ---
 
-## 2. The Sweeper — the chase, and the anti-coasting engine
+## 2. The pack — the chase, and the anti-coasting engine
 
-**Replace the three-lives system in [`dodge-collect.md`](./dodge-collect.md) §2 with a
+**Replace the three-lives system in [`the-herd.md`](./the-herd.md) §2 with a
 continuous pursuer.** This is the single biggest change proposed here.
 
 Discrete lives are a poor fit for this game: they are invisible at a glance while
@@ -72,7 +72,7 @@ exactly the wrong incentive for a fitness product.
 
 ### 2.1 The mechanic
 
-The **Sweeper** is a machine on the track behind you. Its distance is one number:
+The **pack** is a machine on the track behind you. Its distance is one number:
 
 ```
 gap ∈ [0, 100] metres,  starts at 60.
@@ -107,7 +107,7 @@ The gap is read **through the world**, not through a bar:
 |---|---|
 | 60–100 | Nothing. Clean track. Ambient music. |
 | 40–60 | Distant rumble. Occasional light sweep across the track from behind. |
-| 25–40 | The Sweeper's headlights throw the runner's **shadow forward** onto the track. |
+| 25–40 | The pack's headlights throw the runner's **shadow forward** onto the track. |
 | 10–25 | Its silhouette enters the bottom of the frame. Music adds a driving layer. |
 | 0–10 | Red vignette pulsing at ~150bpm. Grabber arms reach into frame. Music strips to percussion. |
 
@@ -122,7 +122,7 @@ backstop for players who want the number, and can be turned off.
 - It removes the death spiral. One bad obstacle costs 18m, not a third of your run.
 - It gives the game a legitimate way to reward intensity that isn't a separate meter
   the player has to remember to look at.
-- It makes recovery visible: fight the Sweeper back from 8m to 40m and the whole
+- It makes recovery visible: fight the pack back from 8m to 40m and the whole
   screen calms down around you. That is a better feeling than a life counter ticking
   back up, and this game can deliver it because the pursuit is analogue.
 
@@ -185,7 +185,16 @@ works precisely because our input is analogue and confidence-scored.
 
 ### 3.4 Lanes are a position, not a sequence of hops
 
-**This is a required correction to [`dodge-collect.md`](./dodge-collect.md) §7.**
+> **Superseded, and in the direction this section was already pointing.** The
+> console now drives lanes from **absolute screen bands** rather than from
+> baseline-relative `lean` at all: three regions drawn on the camera view that
+> the player physically hops between. That removes calibration entirely, removes
+> baseline drift as a category of bug (§7 of the build plan exists only to fight
+> it), and makes a two-lane move one continuous movement. The reasoning below is
+> preserved because it is why the change was made.
+
+
+**This is a required correction to [`the-herd.md`](./the-herd.md) §7.**
 
 That plan says lane state is "a game-side integer incremented by gesture events." But
 `lean_left` / `lean_right` in the console are **held** gestures with hysteresis
@@ -243,7 +252,7 @@ During Surge:
 
 - All ground obstacles pass harmlessly beneath you. There is nothing to dodge.
 - Ribbons of coins stream through the air, collected **only with the hand cursors**.
-- Score ×3, and the Sweeper loses 1.5 m/s.
+- Score ×3, and the pack loses 1.5 m/s.
 - The world opens up — the camera pulls back, the district skyline becomes visible,
   the music switches to its Surge layer.
 - It ends with a landing beat, and no obstacle spawns for 1.2s after touchdown.
@@ -262,7 +271,7 @@ The hoverboard. Held in reserve, maximum one (two at higher tiers).
 
 - **Earned by** holding `avg10s >= 0.70` for 20 continuous seconds. Never bought,
   never granted, never a consolation prize for losing.
-- **Auto-consumes** the moment `gap <= 0`: the Sweeper is thrown back to 35m, 2s of
+- **Auto-consumes** the moment `gap <= 0`: the pack is thrown back to 35m, 2s of
   invulnerability, one big loud VFX beat.
 - The player does not choose to spend it, because a player mid-jump at 170bpm cannot
   make a good spending decision.
@@ -296,7 +305,7 @@ One scripted moment per phase, so a run has a shape you can remember afterward:
 |---|---|---|
 | ~0:50 | **First Surge** | Timed so the difficulty ramp usually delivers it here. Onboarding by reward. |
 | ~1:15 | **The Tunnel** (15s) | Lights die. Obstacles are rim-lit only. Telegraph time is *unchanged* — the danger is atmospheric, never mechanical. Coins are the only light source. |
-| ~2:00 | **The Lunge** (8s) | The Sweeper doubles its drain with a loud, unmissable telegraph. You out-run it by clearing obstacles. Fair, terrifying, and it lands exactly where a HIIT interval's hardest moment should. |
+| ~2:00 | **The Commit** (8s) | The pack doubles its drain with a loud, unmissable telegraph. You out-run it by clearing obstacles. Fair, terrifying, and it lands exactly where a HIIT interval's hardest moment should. |
 | 2:30 | **Finale** | Coin storm, ×3 value, colour shift, music escalation, no new mechanics. Pure sprint. |
 
 **The Tunnel rule generalises: set pieces may change how a run feels, never how it
@@ -317,12 +326,12 @@ regardless of what the lighting is doing.
 ## 5. Progression I — inside a run (0:00 → 3:00)
 
 Difficulty is one scalar `D ∈ [0,1]`; everything below is a lerp on it. This extends
-the build plan's ramp with Sweeper pressure and set pieces.
+the build plan's ramp with pack pressure and set pieces.
 
-| Phase | Time | Scroll | Obstacle interval | Sweeper drain | New this phase |
+| Phase | Time | Scroll | Obstacle interval | pack drain | New this phase |
 |---|---|---|---|---|---|
-| **Onboard** | 0:00–0:20 | 40 u/s | 3.4s | 0.0 m/s | Types 1–3, one at a time. The Sweeper is invisible. Nobody loses here. |
-| **Build** | 0:20–1:00 | 48 u/s | 2.6s | 1.5 m/s | Type 4. Coin arcs. Sweeper becomes audible. First Surge. |
+| **Onboard** | 0:00–0:20 | 40 u/s | 3.4s | 0.0 m/s | Types 1–3, one at a time. The pack is invisible. Nobody loses here. |
+| **Build** | 0:20–1:00 | 48 u/s | 2.6s | 1.5 m/s | Type 4. Coin arcs. pack becomes audible. First Surge. |
 | **Press** | 1:00–1:45 | 56 u/s | 2.1s | 2.8 m/s | Type 5. Lateral spurs. The Tunnel. Shadow-casting begins. |
 | **Squeeze** | 1:45–2:30 | 64 u/s | 1.7s | 4.0 m/s | Type 6. Two obstacles in flight. The Lunge. |
 | **Finale** | 2:30–3:00 | 72 u/s | 1.4s | 5.0 m/s | Coin storm, ×3. All types. |
@@ -403,7 +412,7 @@ Rotating, and every one of them must be satisfiable **only by moving more**:
 - "Hold Surge for 30 seconds total."
 - "Finish a run without being hit during the Finale."
 - "Log 250 scored movements today."
-- "Push the Sweeper back from under 10m to over 50m in one run."
+- "Push the pack back from under 10m to over 50m in one run."
 
 Never a pure coin-count mission. Coins already reward reaching; a coin *target* invites
 lazy waving at the nearest cluster, which is a worse movement than a full extension.
@@ -430,13 +439,13 @@ of the product's actual value, and it is the one that will bring people back.
 
 The build plan's layout (§9) holds. Three changes:
 
-- **Sweeper gap ribbon**, thin, left edge, vertical. Optional; the world already
+- **pack gap ribbon**, thin, left edge, vertical. Optional; the world already
   communicates it. The forward-cast shadow is the primary channel.
 - **Burn/Surge meter** moves to the top edge, full width, 6px tall. It fills toward the
   centre from both sides so it is readable in peripheral vision — the player is
   jumping, and cannot fixate on a corner.
 - **Nothing new below the runner.** That band belongs to the neutral-stance ghost and
-  the Sweeper's silhouette.
+  the pack's silhouette.
 
 Everything critical stays in the top 15%. A player mid-squat cannot read the bottom of
 the screen, and this is not a preference — it is where their eyes physically are.
@@ -445,7 +454,7 @@ the screen, and this is not a preference — it is where their eyes physically a
 
 ## 9. Corrections needed to the build plan and its SDK usage
 
-Found by reading [`dodge-collect.md`](./dodge-collect.md) §11 against the shipped
+Found by reading [`the-herd.md`](./the-herd.md) §11 against the shipped
 [`primal-sdk/src/client.ts`](../../primal-sdk/src/client.ts) and
 [`protocol/v1.ts`](../../primal-sdk/src/protocol/v1.ts). **The build plan's code
 samples do not currently compile against the SDK.** Since this repo is also the
@@ -496,7 +505,7 @@ The point of this ordering is that step 5 answers the only question that matters
 2. `mockDriver.js` — keyboard-driven, protocol-shaped. Fully playable at a desk.
    **The most important file in the repo.**
 3. Obstacles 1–4, commit-line resolution, combo, near-misses (§4.3). Placeholder art.
-4. The Sweeper (§2) — gap maths, forward shadow, audio layers.
+4. The pack (§2) — gap maths, forward shadow, audio layers.
 5. SDK handshake, `input/gesture`, timestamp-based resolution (§3.1), forgiveness
    windows (§3.2), predictive lane snap (§3.3–3.4). **First real playtest. This is the
    gate: if it does not feel snappy here, fix it before adding anything else.**
@@ -524,6 +533,46 @@ On top of the existing list:
 - [ ] Lane selection follows body position, not gesture edges (§3.4)
 - [ ] No spawn can violate the 1.1s telegraph floor — asserted in a test, not by review
 - [ ] Surge is reachable by a moderately fit adult inside the first 60 seconds
-- [ ] The Sweeper's state is legible with the HUD entirely hidden
+- [ ] The pack's state is legible with the HUD entirely hidden
 - [ ] No mechanic exists for which "move less" is the correct play
 - [ ] `workout/summary.reps` contains no exercise the player did not actually do
+
+
+---
+
+## 12. The theme, and why it is this one
+
+The mechanic came first and the theme was fitted to it, which is the right way
+round and worth recording.
+
+The pack's defining behaviour is already in the maths: it gains when you coast
+and falls back when you work. That is not how a machine behaves, and it is not
+how fire behaves either — both of those close in at a constant rate regardless
+of you. It is precisely how a predator behaves. A big cat does not sprint at a
+herd; it paces, and it commits when something flags.
+
+So the effort term stopped needing an explanation the moment the chaser became
+alive. "They can hear you slowing down" is a sentence a player accepts
+instantly. "The wall of energy accelerates when your ten-second average
+intensity drops below 0.5" is not.
+
+Two consequences follow, and both are load-bearing:
+
+- **The pack is read through the world, never off a bar.** Eyes in the grass
+  that multiply as the gap closes, a dark mass rising behind you, and your own
+  shadow thrown forward up the track by the low sun behind them. A player at
+  170bpm cannot read a HUD; they can absolutely count eyes.
+- **Dusk is a readability risk, and it is contained deliberately.** A
+  low-contrast violet-and-gold palette is exactly the kind of art direction that
+  quietly ruins a runner, because the thing you must read in 1.1 seconds stops
+  being the brightest thing on screen. So atmosphere lives strictly in the
+  background layers, and every obstacle keeps its colour code regardless of what
+  the scene is doing:
+
+  | Obstacle | Form | Colour | Movement |
+  |---|---|---|---|
+  | Hurdle | fallen log | **amber** | jump |
+  | Beam | low branch | **cyan** | duck |
+  | Wall | thorn thicket | **pale grey** | change lane |
+
+  The rule generalises: **the theme may own everything that cannot hurt you.**
