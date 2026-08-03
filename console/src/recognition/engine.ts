@@ -12,6 +12,7 @@ import type { PoseFrame } from '../pose/types.js';
 import { Calibrator, type Baseline, type CalibrationState } from './calibration.js';
 import { FeatureExtractor, type FrameFeatures } from './features.js';
 import { GestureRecognizer } from './gestures.js';
+import { ZoneRecognizer, type ZoneState } from './zones.js';
 import { buildBody, buildTrackingStatus, IntensityTracker } from './signals.js';
 import { ExerciseRecognizer, type RepDebug } from './exercise.js';
 import type { ExerciseProfile } from './exercise-profile.js';
@@ -40,6 +41,8 @@ export interface RecognitionOutput {
   /** Live state of the tracked exercise, so the UI can explain a missed rep. */
   rep: RepDebug | null;
   guide: DepthGuide | null;
+  /** Where the player is inside the control grid, for the controller overlay. */
+  zones: ZoneState;
 }
 
 export interface SessionTotals {
@@ -59,6 +62,7 @@ export class RecognitionEngine {
   private readonly extractor = new FeatureExtractor();
   private readonly calibrator = new Calibrator();
   private readonly gestures = new GestureRecognizer();
+  private readonly zones = new ZoneRecognizer();
   private readonly intensity = new IntensityTracker();
   private readonly recognizers = new Map<ExerciseId, ExerciseRecognizer>();
   private readonly exerciseProfiles = new Map<ExerciseId, ExerciseProfile>();
@@ -145,6 +149,7 @@ export class RecognitionEngine {
   }
 
   resetSession(): void {
+    this.zones.reset();
     this.extractor.reset();
     this.gestures.reset();
     this.intensity.reset();
@@ -175,19 +180,29 @@ export class RecognitionEngine {
 
     this.accumulate(features, intensity);
 
+    // Zone controls run on every frame and need no baseline at all. This is
+    // the path a runner uses: absolute bands for lateral movement, rolling
+    // percentiles of the player's own body for the jump and duck lines. It
+    // means a game is playable the moment a person is visible.
+    const zoneEvents = this.zones.update(features);
+    const zoneState = this.zones.current;
+
     const baseline = this.calibrator.current;
     if (!baseline) {
+      // No baseline yet — but that only gates rep counting, which is the one
+      // thing that genuinely needs to know your personal range of motion.
       return {
         features,
         calibration,
         tracking,
         intensity,
-        body: null,
+        body: features.present ? this.zones.body(features) : null,
         reps: [],
         progress: [],
-        gestures: [],
+        gestures: this.subscription.channels.includes('gesture') ? zoneEvents : [],
         rep: null,
         guide: null,
+        zones: zoneState,
       };
     }
 
@@ -211,14 +226,23 @@ export class RecognitionEngine {
       }
     }
 
+    // Zones own jump/crouch/lean; the baseline recogniser still owns punch and
+    // block, which have no sensible screen-zone equivalent. Filtering rather
+    // than disabling keeps `rep-battle`'s guard working unchanged.
     const gestures = this.subscription.channels.includes('gesture')
-      ? this.gestures.update(features, baseline).map(
-          (event): GesturePayload => ({
-            gesture: event.gesture,
-            state: event.state,
-            confidence: event.confidence,
-          }),
-        )
+      ? [
+          ...zoneEvents,
+          ...this.gestures
+            .update(features, baseline)
+            .filter((e) => e.gesture === 'punch_left' || e.gesture === 'punch_right' || e.gesture === 'block')
+            .map(
+              (event): GesturePayload => ({
+                gesture: event.gesture,
+                state: event.state,
+                confidence: event.confidence,
+              }),
+            ),
+        ]
       : [];
 
     // The dashboard shows one exercise at a time; when a game subscribes to
@@ -232,6 +256,7 @@ export class RecognitionEngine {
       tracking,
       intensity,
       body: buildBody(features, baseline),
+      zones: zoneState,
       reps,
       progress,
       gestures,

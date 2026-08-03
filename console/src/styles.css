@@ -593,3 +593,184 @@ button.pill.on:hover {
   border: 1px solid rgba(255, 255, 255, 0.2);
   pointer-events: none;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Home screen: camera and controller first                                */
+/* ---------------------------------------------------------------------- */
+
+.header__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.header__actions .ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(248, 249, 250, 0.7);
+}
+
+.home {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 1fr);
+  gap: 1.5rem;
+  padding: 0 1.5rem 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .home { grid-template-columns: 1fr; }
+}
+
+/* The controller is the biggest thing on the page. It is the control scheme,
+   not an illustration of it, so it gets the space a controller deserves. */
+.home__camera {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0b0f1a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.controller-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.home__status {
+  margin: 0.7rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(248, 249, 250, 0.72);
+  text-align: center;
+}
+
+.home__games .library { padding: 0; }
+
+/* ---------------------------------------------------------------------- */
+/* Controls walkthrough                                                    */
+/* ---------------------------------------------------------------------- */
+
+.guide {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(4, 6, 12, 0.82);
+  overflow-y: auto;
+}
+
+.guide__panel {
+  width: min(680px, 100%);
+  background: #0d1220;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.guide__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.guide__head h2 { margin: 0; }
+.guide__lede { color: rgba(248, 249, 250, 0.8); }
+
+.guide__diagram {
+  margin: 1.2rem 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.guide__grid { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.guide__line {
+  position: relative;
+  height: 0;
+  border-top: 2px solid;
+  margin: 0.9rem 0;
+}
+.guide__line span {
+  position: absolute;
+  top: -0.65rem;
+  left: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0 0.4rem;
+  background: #0d1220;
+}
+.guide__line--jump { border-color: #ff9f1c; }
+.guide__line--jump span { color: #ff9f1c; }
+.guide__line--duck { border-color: #4cc9f0; }
+.guide__line--duck span { color: #4cc9f0; }
+
+.guide__row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+
+.guide__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 0.4rem;
+  border-radius: 8px;
+  border: 1px dashed rgba(29, 233, 182, 0.3);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: rgba(29, 233, 182, 0.75);
+}
+.guide__cell--on {
+  background: rgba(29, 233, 182, 0.1);
+  border-style: solid;
+}
+
+.guide__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(29, 233, 182, 0.35);
+}
+.guide__dot--on { background: #1de9b6; width: 16px; height: 16px; }
+
+.guide__moves { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.85rem; }
+.guide__moves li { display: grid; grid-template-columns: 130px 1fr; gap: 0.9rem; align-items: start; }
+.guide__moves span { color: rgba(248, 249, 250, 0.78); font-size: 0.88rem; }
+
+.guide__key {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  text-align: center;
+}
+.guide__key--side { background: rgba(29, 233, 182, 0.14); color: #1de9b6; }
+.guide__key--jump { background: rgba(255, 159, 28, 0.14); color: #ff9f1c; }
+.guide__key--duck { background: rgba(76, 201, 240, 0.14); color: #4cc9f0; }
+.guide__key--reach { background: rgba(255, 214, 10, 0.14); color: #ffd60a; }
+
+.guide__note {
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(248, 249, 250, 0.7);
+  font-size: 0.85rem;
+}
+
+.guide__done { width: 100%; margin-top: 0.5rem; }
+
+@media (max-width: 560px) {
+  .guide__moves li { grid-template-columns: 1fr; gap: 0.35rem; }
+  .guide__key { justify-self: start; }
+}

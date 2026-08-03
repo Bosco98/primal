@@ -35,15 +35,29 @@ export function GameStage({
   const [previewVisible, setPreviewVisible] = useState(false);
   const [frameSrc] = useState(() => withConsoleParam(new URL(entry.url.toString())).toString());
 
+  /**
+   * Callbacks live in a ref, and are deliberately NOT in the effect's
+   * dependency array.
+   *
+   * They arrive as inline arrows, so they get a fresh identity on every render.
+   * With them in the deps, `host.start()` calling `setPhase('connecting')` would
+   * re-render, change the identity, and tear the effect down — disposing the
+   * host mid-handshake. The game meanwhile has already received its welcome, so
+   * its client is settled and has stopped retrying its hello: the replacement
+   * host waits forever and the stage sits on "Connecting to the game…".
+   */
+  const onExitRef = useRef(onExit);
+  onExitRef.current = onExit;
+
   const exit = useCallback(async () => {
     const host = hostRef.current;
     if (!host) {
-      onExit(null);
+      onExitRef.current(null);
       return;
     }
     await host.end('user');
-    onExit(host.summary);
-  }, [onExit]);
+    onExitRef.current(host.summary);
+  }, []);
 
   useEffect(() => {
     const iframe = frameRef.current;
@@ -55,9 +69,7 @@ export function GameStage({
         setDetail(why ?? null);
       },
       onPreviewChange: setPreviewVisible,
-      onExit: () => {
-        onExit(host.summary);
-      },
+      onExit: () => onExitRef.current(host.summary),
     });
     hostRef.current = host;
 
@@ -90,7 +102,8 @@ export function GameStage({
       host.dispose();
       hostRef.current = null;
     };
-  }, [entry, engine, consoleVersion, sinkRef, onExit]);
+    // Callbacks intentionally excluded — see onExitRef above.
+  }, [entry, engine, consoleVersion, sinkRef]);
 
   return (
     <div className="game-stage">

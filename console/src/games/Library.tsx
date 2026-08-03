@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react';
 import { loadRegistry, type GameEntry } from './registry.js';
 
 export interface LibraryProps {
-  /** Disabled until the pipeline can actually feed a game. */
-  ready: boolean;
+  /**
+   * Whether the player is currently visible. This only softens the label — it
+   * never blocks launching. Gating the library on tracking would put a
+   * flickering condition in front of the one button that matters, and the game
+   * already handles losing sight of you mid-run by coaching rather than dying.
+   */
+  seen: boolean;
   onLaunch(entry: GameEntry): void;
 }
 
@@ -14,7 +19,7 @@ export interface LibraryProps {
  * is the whole plug-and-play claim, so keep it true: nothing in this file may
  * special-case a specific game.
  */
-export function Library({ ready, onLaunch }: LibraryProps): React.JSX.Element {
+export function Library({ seen, onLaunch }: LibraryProps): React.JSX.Element {
   const [entries, setEntries] = useState<GameEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,8 +76,8 @@ export function Library({ ready, onLaunch }: LibraryProps): React.JSX.Element {
               {entry.tagline && <span>{entry.tagline}</span>}
               {entry.estimatedMinutes && <span className="hint">~{entry.estimatedMinutes} min</span>}
             </div>
-            <button type="button" disabled={!ready} onClick={() => onLaunch(entry)}>
-              {ready ? 'Play' : 'Calibrate first'}
+            <button type="button" onClick={() => onLaunch(entry)}>
+              {seen ? 'Play' : 'Play anyway'}
             </button>
           </li>
         ))}

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="The Herd">
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1030"/>
+      <stop offset="55%" stop-color="#3d2450"/>
+      <stop offset="100%" stop-color="#7a4a52"/>
+    </linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5c462c"/>
+      <stop offset="100%" stop-color="#a8864a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="200" fill="url(#dusk)"/>
+
+  <!-- low sun on the horizon -->
+  <circle cx="160" cy="76" r="15" fill="#ff9650" opacity="0.28"/>
+
+  <!-- the track, receding -->
+  <path d="M160 72 L272 172 L48 172 Z" fill="url(#grass)"/>
+  <path d="M160 72 L206 172" stroke="#e2c480" stroke-opacity="0.16" stroke-width="1"/>
+  <path d="M160 72 L114 172" stroke="#e2c480" stroke-opacity="0.16" stroke-width="1"/>
+
+  <!-- fallen log (AMBER = jump) -->
+  <rect x="112" y="112" width="96" height="6" rx="3" fill="#ff9f1c"/>
+  <!-- low branch (CYAN = duck) -->
+  <rect x="104" y="94" width="112" height="5" rx="2.5" fill="#4cc9f0" opacity="0.9"/>
+  <!-- thicket (PALE = go around) -->
+  <rect x="212" y="132" width="30" height="24" rx="4" fill="#a8b0c4" opacity="0.85"/>
+
+  <!-- fireflies, always outside the resting silhouette -->
+  <g fill="#ffe278">
+    <circle cx="86" cy="104" r="3"/>
+    <circle cx="98" cy="95" r="3"/>
+    <circle cx="228" cy="100" r="3"/>
+    <circle cx="240" cy="110" r="3"/>
+  </g>
+
+  <!-- the runner -->
+  <g fill="#f4ede2">
+    <circle cx="160" cy="140" r="6"/>
+    <rect x="156" y="147" width="8" height="16" rx="3"/>
+    <rect x="151" y="163" width="5" height="12" rx="2.5"/>
+    <rect x="164" y="163" width="5" height="12" rx="2.5"/>
+  </g>
+
+  <!-- the pack: a dark mass and eyes in the grass -->
+  <path d="M0 200 Q160 162 320 200 Z" fill="#0e0814" opacity="0.85"/>
+  <g fill="#ff4a28">
+    <circle cx="58" cy="184" r="2.4"/><circle cx="68" cy="184" r="2.4"/>
+    <circle cx="132" cy="178" r="2.4"/><circle cx="142" cy="178" r="2.4"/>
+    <circle cx="196" cy="180" r="2.4"/><circle cx="206" cy="180" r="2.4"/>
+    <circle cx="258" cy="186" r="2.4"/><circle cx="268" cy="186" r="2.4"/>
+  </g>
+
+  <text x="20" y="34" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" fill="#f4ede2" letter-spacing="3">THE HERD</text>
+  <text x="20" y="50" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" fill="#ff9f1c" letter-spacing="1.2">SOMETHING IS PACING YOU</text>
+</svg>

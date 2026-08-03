@@ -1,7 +1,7 @@
 # Dodge & Collect — Build Plan (Launch Game 2, built FIRST)
 
 **Status:** BUILD. First game implemented. Also the **reference/template repo** third-party developers clone.
-**Repo:** `primal-game-dodge-collect`
+**Repo:** `primal-game-the-herd`
 **API surface proved:** continuous `input/body` (30Hz), low-latency `input/gesture`, `tracking/status` degradation, `session/pause` mid-run.
 **Workout type:** cardio (HIIT-shaped).
 **Session length:** 2:30–3:00 per run; a natural sitting is 3–5 runs with 60–90s between = 12–18 min.
@@ -418,7 +418,7 @@ Rationale: the console uses this for cross-game profile and (later) currency. A 
 This repo is the thing third-party developers clone. Structure it for reading, not for cleverness.
 
 ```
-primal-game-dodge-collect/
+primal-game-the-herd/
 ├── README.md              <- 5-min "your first PRIMAL game", not a feature list
 ├── src/
 │   ├── main.js            <- boot, handshake, subscribe. ~80 lines. Read this first.

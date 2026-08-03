@@ -18,7 +18,7 @@ and version together. Games are downstream consumers and live apart.
 | Path | What it is |
 |---|---|
 | [`sdk/`](sdk/) | `@bosco98/primal-sdk` — the wire protocol, `PrimalClient` (game side), `PrimalHost` (console side), and `FakeConsole` for developing without a camera. Published to GitHub Packages on every `sdk/**` push. |
-| [`console/`](console/) | Camera, MediaPipe pose pipeline, recognisers, calibration, the game library and the game host. |
+| [`console/`](console/) | Camera, MediaPipe pose pipeline, the zone controller, recognisers, the game library and the game host. |
 | [`docs/`](docs/) | Protocol notes, the platform architecture, game design plans, and the post-MVP roadmap. |
 | [`console/public/games.json`](console/public/games.json) | The registry: which cartridges this console can launch. |
 
@@ -26,7 +26,7 @@ Games are their own repositories with their own GitHub Pages deployments:
 
 | Repo | What it is |
 |---|---|
-| [primal-game-dodge-collect](https://github.com/Bosco98/primal-game-dodge-collect) | *Dodge & Collect* — lean, duck, jump and reach. Also the reference cartridge. |
+| [primal-game-the-herd](https://github.com/Bosco98/primal-game-the-herd) | *The Herd* — dusk on the savannah, something pacing you. Also the reference cartridge. |
 
 ## Run it locally
 
@@ -37,9 +37,10 @@ cd sdk && npm install && npm run build     # console consumes this via file:../s
 cd ../console && npm install && npm run dev   # http://localhost:5173
 ```
 
-Stand back, hold still for two seconds while it calibrates, then do some squats.
-The right-hand panel shows live rep count, form score, gesture states and the
-pipeline's frame rate. Registered games appear under **Games**.
+Allow the camera and stand back until your whole body is in frame. **There is no
+calibration step** — the controls are drawn on the camera view and follow you.
+Registered games appear under **Games**; **How to play** explains the controls
+and **Show pipeline** opens the developer dashboard.
 
 ## How a game connects
 
@@ -52,7 +53,7 @@ import { PrimalClient, FakeConsole, isConsoleEmbedded } from '@bosco98/primal-sd
 // Standalone? Nobody will answer the handshake, so answer it yourself.
 if (!isConsoleEmbedded()) FakeConsole.attach().bindKeyboard();
 
-const primal = await PrimalClient.connect({ gameId: 'dodge-collect' });
+const primal = await PrimalClient.connect({ gameId: 'the-herd' });
 primal.subscribe({ channels: ['gesture', 'body'], exercises: [], bodyRateHz: 30 });
 primal.on('input/gesture', (g) => { if (g.gesture === 'jump') jump(); });
 ```
@@ -90,11 +91,14 @@ Built and tested:
   See [adding an exercise](docs/adding-an-exercise.md).
 - Four exercises on top of it: **squat** (validated against a real camera),
   **jumping jack**, and **lunge** and **push-up** marked beta for stated reasons.
+- **Zone controls**: a grid drawn on the camera view — three bands you stand in,
+  and live jump/duck lines derived from your own body. No calibration, no
+  ritual, and what you see is exactly what the recogniser is testing.
 - Gestures (lean, crouch, jump, block, punch), body-as-cursor, and effort.
 - The full wire protocol, both halves of the SDK, the game registry and the
   game host.
 
-Not built yet: the games themselves.
+Playable: **The Herd**, the first cartridge and the reference repo.
 
 ## Tests
 

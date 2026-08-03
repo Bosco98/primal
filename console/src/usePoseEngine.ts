@@ -12,6 +12,7 @@ import type { PoseFrame, PoseSource } from './pose/types.js';
 import { loadBaseline, saveBaseline, type CalibrationState } from './recognition/calibration.js';
 import { RecognitionEngine, type DepthGuide, type RecognitionOutput } from './recognition/engine.js';
 import type { RepDebug } from './recognition/exercise.js';
+import type { ZoneState } from './recognition/zones.js';
 import {
   clearExerciseProfiles,
   ExerciseProfileCalibrator,
@@ -117,6 +118,8 @@ export function usePoseEngine() {
    * second to deliver it would cost more than the game does.
    */
   const outputSinkRef = useRef<((output: RecognitionOutput) => void) | null>(null);
+  /** Live control-grid state for the overlay. Ref, so it can render at 60Hz. */
+  const zonesRef = useRef<ZoneState | null>(null);
 
   const activateExerciseProfile = useCallback(
     (profile: ExerciseProfile, engine = engineRef.current) => {
@@ -201,6 +204,7 @@ export function usePoseEngine() {
 
       // Games see exactly what the dashboard sees, from the same object, on the
       // same frame — so a bug reproduced on the debug overlay is the same bug.
+      zonesRef.current = output.zones;
       outputSinkRef.current?.(output);
 
       // Only persist when the baseline is actually new. This used to write to
@@ -404,6 +408,7 @@ export function usePoseEngine() {
     engineRef,
     /** Set this to receive every frame of recognition output. */
     outputSinkRef,
+    zonesRef,
     exercise,
     setExercise,
     start,

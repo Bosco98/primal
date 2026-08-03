@@ -5,7 +5,7 @@ a cartridge the console can launch. The API reference is
 [`sdk/README.md`](../sdk/README.md); this is the workflow.
 
 The reference cartridge is
-[primal-game-dodge-collect](https://github.com/Bosco98/primal-game-dodge-collect).
+[primal-game-the-herd](https://github.com/Bosco98/primal-game-the-herd).
 Clone it rather than starting from nothing.
 
 A finished game is **one static web page**. Unlike a phone-controller platform

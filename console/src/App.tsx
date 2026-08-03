@@ -8,6 +8,8 @@ import type {
 import { GameStage } from './games/GameStage.js';
 import { Library } from './games/Library.js';
 import type { GameEntry } from './games/registry.js';
+import { ControllerOverlay } from './ui/ControllerOverlay.js';
+import { ControlsGuide } from './ui/ControlsGuide.js';
 
 import { EXERCISE_DEFINITIONS } from './recognition/exercises.js';
 import { SkeletonOverlay } from './ui/SkeletonOverlay.js';
@@ -28,9 +30,22 @@ const CONSOLE_VERSION = '0.2.0';
  * can be watched directly — if a rep counter is wrong, it is wrong here first,
  * in a screen with every intermediate number on it.
  */
+/**
+ * The console home screen.
+ *
+ * Camera first, controller on top of it, games underneath. There is no
+ * calibration step and no dashboard here by default: the zone recogniser needs
+ * no baseline, so the only thing standing between opening the page and playing
+ * is being visible to the camera. The dev dashboard still exists — the pose
+ * pipeline is worth being able to stare at — but it is a toggle, not the
+ * landing page.
+ */
 export default function App() {
   const [launched, setLaunched] = useState<GameEntry | null>(null);
   const [lastSummary, setLastSummary] = useState<WorkoutSummaryPayload | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
+  const [showDev, setShowDev] = useState(false);
+  const engine = usePoseEngine();
   const {
     status,
     error,
@@ -56,13 +71,10 @@ export default function App() {
     cancelExerciseCalibration,
     engineRef,
     outputSinkRef,
-  } = usePoseEngine();
+    zonesRef,
+  } = engine;
 
-  const calibrated = snapshot.calibration?.phase === 'done';
-
-  // A launched game owns the whole screen. The dashboard is a dev tool, and
-  // leaving it visible next to a game would put the player's attention on
-  // numbers instead of on moving.
+  // A launched game owns the whole screen.
   if (launched && engineRef.current) {
     return (
       <GameStage
@@ -78,13 +90,28 @@ export default function App() {
     );
   }
 
+  const seen = snapshot.tracking?.personDetected ?? false;
+
   return (
-    <div className="app">
+    <div className="app app--home">
       <header className="header">
         <h1>
           PRIMAL<span className="dot" />
         </h1>
-        <p className="tagline">motion pipeline · dev dashboard</p>
+        <p className="tagline">your body is the controller</p>
+        <div className="header__actions">
+          <button type="button" onClick={() => setShowGuide(true)}>
+            How to play
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => setShowDev((v) => !v)}
+            aria-pressed={showDev}
+          >
+            {showDev ? 'Hide' : 'Show'} pipeline
+          </button>
+        </div>
       </header>
 
       {status === 'idle' && <StartScreen onStart={start} />}
@@ -97,19 +124,34 @@ export default function App() {
       )}
 
       {status === 'running' && (
-        <>
-        {lastSummary && (
-          <p className="notice" role="status">
-            Last session: {lastSummary.activeSeconds.toFixed(0)}s active ·{' '}
-            {Math.round(lastSummary.avgIntensity * 100)}% avg intensity
-            {typeof lastSummary.score === 'number' && ` · ${lastSummary.score} pts`}
-          </p>
-        )}
-        <Library ready={calibrated} onLaunch={setLaunched} />
-        </>
+        <main className="home">
+          <section className="home__controller">
+            <div className="home__camera">
+              <ControllerOverlay video={video} zonesRef={zonesRef} />
+            </div>
+            <p className="home__status" role="status">
+              {seen
+                ? 'You are in frame. Stand in a band, then hop to move.'
+                : 'Step back until your whole body is in view.'}
+            </p>
+          </section>
+
+          <section className="home__games">
+            {lastSummary && (
+              <p className="notice" role="status">
+                Last run: {lastSummary.activeSeconds.toFixed(0)}s active ·{' '}
+                {Math.round(lastSummary.avgIntensity * 100)}% avg intensity
+                {typeof lastSummary.score === 'number' && ` · ${lastSummary.score} pts`}
+              </p>
+            )}
+            <Library seen={seen} onLaunch={setLaunched} />
+          </section>
+        </main>
       )}
 
-      {status === 'running' && (
+      {showGuide && <ControlsGuide onClose={() => setShowGuide(false)} />}
+
+      {status === 'running' && showDev && (
         <main className="layout">
           <section className="preview">
             <SkeletonOverlay
@@ -284,12 +326,12 @@ function StartScreen({ onStart }: { onStart: () => void }) {
       */}
       <p>
         PRIMAL uses your webcam to see how you move. Video is processed entirely on this
-        machine and never leaves it. Personal calibration stores only derived movement
-        measurements in this browser. Debug samples contain landmarks, never video.
+        machine and never leaves it, and games never get camera access at all — they
+        receive movement messages, not pictures.
       </p>
       <p className="hint">
-        Stand about two metres back so your whole body is in frame, then hold still for a
-        moment while it calibrates.
+        Stand about two metres back so your whole body is in frame. There is nothing to
+        set up: the controls appear on screen and follow you.
       </p>
       <button className="primary" onClick={onStart}>
         Enable camera
