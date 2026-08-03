@@ -52,7 +52,7 @@ export type FramingIssue =
   | 'no_person'
   | 'too_close'
   | 'too_far'
-  | 'feet_not_visible'
+  | 'legs_not_visible'
   | 'low_light';
 
 export interface Tracking {
@@ -61,10 +61,10 @@ export interface Tracking {
   quality: number;
   issues: FramingIssue[];
   /**
-   * True when the player is positioned well enough to actually play. Jump
-   * detection needs ankles in frame, so this is a hard gate rather than a hint:
-   * without feet, the ground reference collapses to the bottom of the picture
-   * and the jump line ends up somewhere meaningless.
+   * True when the player is positioned well enough to actually play. Both
+   * controls are measured between the hips and the knees, so this gate is about
+   * those being in frame — not the feet, which may be cropped without costing
+   * the player anything.
    */
   playable: boolean;
 }

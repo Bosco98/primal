@@ -17,15 +17,18 @@ export function ControlsGuide({ onClose }: { onClose(): void }): React.JSX.Eleme
         </header>
 
         <p className="guide__lede">
-          Your body is the controller. Stand back until you can see all of yourself in the
-          camera, then move to the marks. There is nothing to calibrate — the lines follow
-          you.
+          Your body is the controller. Stand back until you can see yourself down to the
+          knees, then move to the marks. There is nothing to calibrate — the game watches
+          the dot on your hips, and both lines are drawn from where it rests.
         </p>
 
         <div className="guide__diagram" aria-hidden>
           <div className="guide__grid">
             <div className="guide__line guide__line--jump">
               <span>JUMP</span>
+            </div>
+            <div className="guide__line guide__line--stand">
+              <span>standing</span>
             </div>
             <div className="guide__row">
               <div className="guide__cell">
@@ -42,7 +45,7 @@ export function ControlsGuide({ onClose }: { onClose(): void }): React.JSX.Eleme
               </div>
             </div>
             <div className="guide__line guide__line--duck">
-              <span>DUCK</span>
+              <span>SQUAT</span>
             </div>
           </div>
         </div>
@@ -58,15 +61,17 @@ export function ControlsGuide({ onClose }: { onClose(): void }): React.JSX.Eleme
           <li>
             <b className="guide__key guide__key--jump">Jump</b>
             <span>
-              Get both feet above the orange line. It sits just above where your feet
-              normally are, so a real hop clears it and a shuffle does not.
+              Hop, and drive your hips above the orange line. It sits a hand's width above
+              where you stand, so a real jump clears it and rocking onto your toes does
+              not.
             </span>
           </li>
           <li>
-            <b className="guide__key guide__key--duck">Duck</b>
+            <b className="guide__key guide__key--duck">Squat</b>
             <span>
-              Squat until your hips drop below the blue line. Knees soft, chest up — this
-              one is doing most of the work on your legs.
+              Sit back until your hips drop past the blue line, which sits about two thirds
+              of the way down to your knees — a half squat, not a bob. Chest up, knees
+              tracking over your toes. This one does most of the work on your legs.
             </span>
           </li>
           <li>

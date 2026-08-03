@@ -77,7 +77,27 @@ export function usePose() {
     }
   }, []);
 
+  /**
+   * Release the camera and go back to idle.
+   *
+   * Backing out of the framing screen has to actually turn the camera off, not
+   * just navigate away from it. A webcam light that stays on after the player
+   * has left the screen that asked for it is the kind of thing that makes
+   * someone distrust the whole "nothing leaves this machine" claim, however
+   * true it is.
+   */
+  const stop = useCallback(() => {
+    sourceRef.current?.stop();
+    sourceRef.current = null;
+    startedRef.current = false;
+    frameRef.current = null;
+    setVideo(null);
+    setTracking(IDLE_TRACKING);
+    setError(null);
+    setStatus('idle');
+  }, []);
+
   useEffect(() => () => sourceRef.current?.stop(), []);
 
-  return { status, error, tracking, video, start, sinkRef, frameRef };
+  return { status, error, tracking, video, start, stop, sinkRef, frameRef };
 }

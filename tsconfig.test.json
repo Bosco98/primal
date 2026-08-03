@@ -1,0 +1,14 @@
+{
+  // Tests run on Node's built-in runner with type stripping, so they import
+  // sibling modules by their real `.ts` paths and need Node's types. Kept
+  // separate from the app config so `@types/node` never shadows a DOM global
+  // in the browser build — `setTimeout` returning a `Timeout` instead of a
+  // number is the classic way that goes wrong.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.test.ts"],
+  "exclude": []
+}

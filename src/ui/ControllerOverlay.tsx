@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import type { ZoneState } from '../control/zones.js';
-import { ZONES } from '../control/zones.js';
+import { ACCENT, BONE, COOL, WARM, drawSkeleton } from './skeleton.js';
+import { ZONES, type ZoneState } from '../control/zones.js';
+import type { ControlFrame } from '../control/engine.js';
 
 export interface ControllerOverlayProps {
   video: HTMLVideoElement | null;
-  zonesRef: React.MutableRefObject<ZoneState | null>;
+  frameRef: React.MutableRefObject<ControlFrame | null>;
   /** Draw the labels and legend. Off during a game, where space is tight. */
   labelled?: boolean;
 }
@@ -13,21 +14,26 @@ export interface ControllerOverlayProps {
  * The controller, drawn over a mirrored camera view.
  *
  * This *is* the control scheme — not a diagram of it. Three absolute bands you
- * stand in, and two live lines you cross:
+ * stand in, and two lines your hips cross:
  *
- *   ── JUMP ──   cross it upward and you jump
- *   ●  ●  ●      stand in a band to pick your lane; hop sideways to change
- *   ── DUCK ──   drop below it and you duck
+ *   ── JUMP ──   rise above it and you jump
+ *   ·· stand ··  where your hips rest; both lines are measured from here
+ *   ── SQUAT ──  drop below it and you duck
  *
- * The vertical lines sit at live thresholds derived from the player's own body,
- * so what you see is exactly what the recogniser is testing. That is the whole
- * reason there is no calibration step: instead of learning your neutral pose in
- * advance and then hiding it, the console shows you where the line is, right
- * now, and lets you move relative to it.
+ * The skeleton is not decoration. It is the only way to tell "the game can see
+ * me" apart from "the game can see me but has misread where my legs are", which
+ * from behind a threshold look identical — you squat, nothing happens, and
+ * there is no way to know whether the problem is you, the light, or the model.
+ * With bones drawn on, a bad frame is visibly a bad frame.
+ *
+ * The hip marker is drawn brighter than every other joint because it is the
+ * point being tested. Everything the controller decides comes from where that
+ * one dot sits relative to two lines, so a player watching it can see a duck
+ * coming before it registers.
  */
 export function ControllerOverlay({
   video,
-  zonesRef,
+  frameRef,
   labelled = true,
 }: ControllerOverlayProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -69,25 +75,24 @@ export function ControllerOverlay({
       }
 
       // Darken the feed so the grid stays readable over a bright room.
-      ctx.fillStyle = 'rgba(6,8,16,0.42)';
+      ctx.fillStyle = 'rgba(6,8,16,0.46)';
       ctx.fillRect(0, 0, w, h);
 
-      const zones = zonesRef.current;
+      const frame = frameRef.current;
+      const zones = frame?.zones ?? null;
+      const scale = labelled ? 1 : 0.62;
+
       drawBands(ctx, w, h, zones, labelled);
-      drawLines(ctx, w, h, zones, labelled);
-      drawPlayer(ctx, w, h, zones);
+      drawLines(ctx, w, h, zones, labelled, scale);
+      if (frame?.landmarks?.length) drawSkeleton(ctx, w, h, frame.landmarks, zones, scale);
       if (!zones?.present) drawWaiting(ctx, w, h, labelled);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [video, zonesRef, labelled]);
+  }, [video, frameRef, labelled]);
 
   return <canvas ref={canvasRef} className="controller-overlay" />;
 }
-
-const ACCENT = '29,233,182';
-const WARM = '255,159,28';
-const COOL = '76,201,240';
 
 function drawBands(
   ctx: CanvasRenderingContext2D,
@@ -99,7 +104,6 @@ function drawBands(
   const edges = [0.5 - ZONES.BAND_ENTER, 0.5 + ZONES.BAND_ENTER];
   const active = zones?.band ?? 0;
 
-  // Highlight the band the player is standing in.
   const spans: Array<[number, number, number]> = [
     [-1, 0, edges[0]!],
     [0, edges[0]!, edges[1]!],
@@ -112,7 +116,7 @@ function drawBands(
     }
   }
 
-  ctx.strokeStyle = `rgba(${ACCENT},0.32)`;
+  ctx.strokeStyle = `rgba(${ACCENT},0.30)`;
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 8]);
   for (const edge of edges) {
@@ -123,48 +127,65 @@ function drawBands(
   }
   ctx.setLineDash([]);
 
-  // The three standing marks.
-  const centres = [edges[0]! / 2, 0.5, (1 + edges[1]!) / 2];
-  centres.forEach((cx, i) => {
-    const band = (i - 1) as -1 | 0 | 1;
-    const on = band === active && zones?.present;
-    ctx.beginPath();
-    ctx.arc(cx * w, h * 0.5, on ? 11 : 7, 0, Math.PI * 2);
-    ctx.fillStyle = on ? `rgba(${ACCENT},0.95)` : `rgba(${ACCENT},0.30)`;
-    ctx.fill();
-  });
-
   if (!labelled) return;
+  const centres = [edges[0]! / 2, 0.5, (1 + edges[1]!) / 2];
   ctx.font = '600 11px ui-monospace, SFMono-Regular, Menlo, monospace';
   ctx.textAlign = 'center';
-  ctx.fillStyle = `rgba(${ACCENT},0.75)`;
   ['LEFT', 'CENTRE', 'RIGHT'].forEach((label, i) => {
-    ctx.fillText(label, centres[i]! * w, h - 12);
+    const on = (i - 1) === active && zones?.present;
+    ctx.fillStyle = on ? `rgba(${ACCENT},0.95)` : `rgba(${ACCENT},0.45)`;
+    ctx.fillText(label, centres[i]! * w, h - 10);
   });
 }
 
+/**
+ * The two thresholds, plus the baseline they are both measured from.
+ *
+ * Drawing the baseline matters even though nothing triggers on it: it is the
+ * visual proof that the jump line is above and the squat line below, which is
+ * the property that stops them ever meeting.
+ */
 function drawLines(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
   zones: ZoneState | null,
   labelled: boolean,
+  scale: number,
 ): void {
   if (!zones?.ready || !zones.present) return;
 
-  const jumpY = clamp(0.04, 0.94, zones.jumpLineY) * h;
-  const duckY = clamp(0.04, 0.94, zones.duckLineY) * h;
+  const jumpY = clamp(0.03, 0.97, zones.jumpLineY) * h;
+  const squatY = clamp(0.03, 0.97, zones.squatLineY) * h;
+  const standY = clamp(0.03, 0.97, zones.standY) * h;
 
-  line(ctx, w, jumpY, zones.jumping ? `rgba(${WARM},1)` : `rgba(${WARM},0.5)`, zones.jumping ? 4 : 2);
-  line(ctx, w, duckY, zones.ducking ? `rgba(${COOL},1)` : `rgba(${COOL},0.5)`, zones.ducking ? 4 : 2);
+  // Wash the zone you are currently in, so a held duck is unmistakable.
+  if (zones.jumping) {
+    ctx.fillStyle = `rgba(${WARM},0.14)`;
+    ctx.fillRect(0, 0, w, jumpY);
+  }
+  if (zones.ducking) {
+    ctx.fillStyle = `rgba(${COOL},0.14)`;
+    ctx.fillRect(0, squatY, w, h - squatY);
+  }
+
+  // The resting baseline: a reference, never a trigger, so it stays quiet.
+  ctx.setLineDash([3, 6]);
+  line(ctx, w, standY, `rgba(${BONE},0.34)`, 1.5 * scale);
+  ctx.setLineDash([]);
+
+  line(ctx, w, jumpY, `rgba(${WARM},${zones.jumping ? 1 : 0.6})`, (zones.jumping ? 4 : 2.2) * scale);
+  line(ctx, w, squatY, `rgba(${COOL},${zones.ducking ? 1 : 0.6})`, (zones.ducking ? 4 : 2.2) * scale);
 
   if (!labelled) return;
   ctx.font = '700 11px ui-monospace, SFMono-Regular, Menlo, monospace';
   ctx.textAlign = 'left';
   ctx.fillStyle = `rgba(${WARM},0.95)`;
-  ctx.fillText('JUMP — get your feet above this', 10, jumpY - 8);
+  ctx.fillText('JUMP — hips above this', 10, jumpY - 7);
+  ctx.fillStyle = `rgba(${BONE},0.5)`;
+  ctx.fillText('standing', 10, standY - 6);
   ctx.fillStyle = `rgba(${COOL},0.95)`;
-  ctx.fillText('DUCK — get your hips below this', 10, duckY + 18);
+  ctx.fillText('SQUAT — hips below this', 10, squatY + 16);
 }
 
 function line(ctx: CanvasRenderingContext2D, w: number, y: number, color: string, width: number): void {
@@ -174,27 +195,6 @@ function line(ctx: CanvasRenderingContext2D, w: number, y: number, color: string
   ctx.moveTo(0, y);
   ctx.lineTo(w, y);
   ctx.stroke();
-}
-
-function drawPlayer(
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  zones: ZoneState | null,
-): void {
-  if (!zones?.present) return;
-  const x = clamp(0.02, 0.98, zones.playerX) * w;
-  const y = clamp(0.02, 0.98, zones.playerY) * h;
-
-  ctx.beginPath();
-  ctx.arc(x, y, 16, 0, Math.PI * 2);
-  ctx.strokeStyle = '#f8f9fa';
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x, y, 5, 0, Math.PI * 2);
-  ctx.fillStyle = '#f8f9fa';
-  ctx.fill();
 }
 
 function drawWaiting(

@@ -265,6 +265,25 @@ button.link {
 .guide__line--jump span { color: var(--amber); }
 .guide__line--duck { border-color: var(--cyan); }
 .guide__line--duck span { color: var(--cyan); }
+/* The baseline both thresholds hang off. Dashed and dim: a reference, never a
+   trigger, and it must not read as a third thing to cross. */
+.guide__line--stand {
+  border-top-style: dashed;
+  border-color: rgba(235, 242, 255, 0.34);
+  margin: 0.55rem 0;
+}
+.guide__line--stand span {
+  color: rgba(235, 242, 255, 0.5);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+button.ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.14);
+  opacity: 0.75;
+}
+button.ghost:hover:not(:disabled) { opacity: 1; }
 .guide__row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
 .guide__cell {
   display: flex;

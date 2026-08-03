@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { usePose } from './usePose.js';
 import { coachFor } from './control/signals.js';
 import { ControllerOverlay } from './ui/ControllerOverlay.js';
 import { ControlsGuide } from './ui/ControlsGuide.js';
 import { Stage } from './ui/Stage.js';
 import type { RunSummary } from './types.js';
-import type { ZoneState } from './control/zones.js';
 
 type Screen = 'title' | 'framing' | 'playing' | 'summary';
 
@@ -25,11 +24,7 @@ export default function App(): React.JSX.Element {
   const [showGuide, setShowGuide] = useState(false);
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [deskMode, setDeskMode] = useState(false);
-  const { status, error, tracking, video, start, sinkRef, frameRef } = usePose();
-
-  // The framing overlay reads live zone state straight off the pose loop.
-  const zonesRef = useRef<ZoneState | null>(null);
-  zonesRef.current = frameRef.current?.zones ?? null;
+  const { status, error, tracking, video, start, stop, sinkRef, frameRef } = usePose();
 
   const beginFraming = (): void => {
     setDeskMode(false);
@@ -42,6 +37,12 @@ export default function App(): React.JSX.Element {
     setScreen('playing');
   };
 
+  /** Every screen past the title needs a way home, and it must free the camera. */
+  const goHome = (): void => {
+    stop();
+    setScreen('title');
+  };
+
   if (screen === 'playing') {
     return (
       <Stage
@@ -52,7 +53,7 @@ export default function App(): React.JSX.Element {
           setSummary(result);
           setScreen('summary');
         }}
-        onQuit={() => setScreen('title')}
+        onQuit={goHome}
       />
     );
   }
@@ -91,6 +92,11 @@ export default function App(): React.JSX.Element {
 
       {screen === 'framing' && (
         <section className="framing">
+          {status !== 'running' && (
+            <button type="button" className="link" onClick={goHome}>
+              ← Back
+            </button>
+          )}
           {status === 'starting' && (
             <p className="notice">Starting camera and loading the model…</p>
           )}
@@ -111,7 +117,7 @@ export default function App(): React.JSX.Element {
           {status === 'running' && (
             <>
               <div className="framing__camera">
-                <ControllerOverlay video={video} zonesRef={zonesRef} />
+                <ControllerOverlay video={video} frameRef={frameRef} />
               </div>
               <p className={tracking.playable ? 'framing__status ok' : 'framing__status'}>
                 {tracking.playable ? 'Good — all of you is in frame.' : coachFor(tracking)}
@@ -127,6 +133,9 @@ export default function App(): React.JSX.Element {
                 </button>
                 <button type="button" onClick={() => setShowGuide(true)}>
                   How to play
+                </button>
+                <button type="button" className="ghost" onClick={goHome}>
+                  Back
                 </button>
               </div>
             </>
@@ -167,7 +176,7 @@ export default function App(): React.JSX.Element {
             <button type="button" className="primary" onClick={() => setScreen('playing')}>
               Again
             </button>
-            <button type="button" onClick={() => setScreen('title')}>
+            <button type="button" onClick={goHome}>
               Done
             </button>
           </div>

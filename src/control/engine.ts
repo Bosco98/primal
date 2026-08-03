@@ -1,5 +1,5 @@
 import { FeatureExtractor } from '../pose/features.js';
-import type { PoseFrame } from '../pose/types.js';
+import type { Landmark, PoseFrame } from '../pose/types.js';
 import type { Action, Body, Intensity, Tracking } from '../types.js';
 import { buildTracking, IntensityTracker } from './signals.js';
 import { ZoneRecognizer, type ZoneState } from './zones.js';
@@ -22,6 +22,13 @@ export interface ControlFrame {
   body: Body | null;
   intensity: Intensity;
   tracking: Tracking;
+  /**
+   * Raw image-space landmarks, unmirrored, for drawing the skeleton. Passed
+   * straight through rather than mirrored here: the overlay already flips the
+   * whole canvas to mirror the video, so flipping these too would put the
+   * skeleton back-to-front over its own body.
+   */
+  landmarks: Landmark[];
   /** Frame timestamp, in the same clock the game's loop uses. */
   t: number;
 }
@@ -49,6 +56,7 @@ export class ControlEngine {
       body: features.present ? this.zones.body(features) : null,
       intensity,
       tracking,
+      landmarks: frame.landmarks,
       t: features.t,
     };
   }

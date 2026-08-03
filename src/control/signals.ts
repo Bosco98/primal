@@ -54,11 +54,14 @@ const TORSO_MAX = 0.34;
  * Judges whether input can currently be trusted, and — separately — whether the
  * player is standing somewhere the controls can actually work.
  *
- * `playable` is the important one and it is a hard gate, not a hint. Jump
- * detection reads ankle height against a rolling ground reference. With the
- * feet out of frame that reference collapses to the bottom edge of the picture,
- * the jump line lands somewhere meaningless, and the controls appear broken for
- * a reason the player has no way to guess. Better to say "step back".
+ * `playable` is the important one and it is a hard gate, not a hint. Both
+ * controls are measured between the hips and the knees, so with the knees out
+ * of frame there is no squat line at all and the controls appear broken for a
+ * reason the player has no way to guess. Better to say "step back".
+ *
+ * Note it asks for knees and not feet. It used to ask for feet, because jumps
+ * were read from the ankles; they are read from the hips now, and demanding a
+ * clear view of someone's shoes to let them play was a tax on nothing.
  */
 export function buildTracking(features: FrameFeatures): Tracking {
   if (!features.present) {
@@ -68,7 +71,7 @@ export function buildTracking(features: FrameFeatures): Tracking {
   const issues: FramingIssue[] = [];
   if (features.torsoLength > TORSO_MAX) issues.push('too_close');
   if (features.torsoLength < TORSO_MIN) issues.push('too_far');
-  if (!features.lowerBodyVisible || features.ankleY > 0.985) issues.push('feet_not_visible');
+  if (!features.kneesVisible || features.kneeY > 0.985) issues.push('legs_not_visible');
 
   // Landmark visibility collapses in the dark long before the image looks black
   // to a human, which makes it a decent proxy for "turn a light on".
@@ -97,8 +100,8 @@ export function coachFor(tracking: Tracking): string {
       return "You're too close — take a few steps back.";
     case 'too_far':
       return 'Move a little closer to the camera.';
-    case 'feet_not_visible':
-      return 'Step back until your feet are in view — jumps are read from your ankles.';
+    case 'legs_not_visible':
+      return 'Step back until your knees are in view — both controls are measured from them.';
     default:
       return tracking.issues.includes('low_light')
         ? 'A bit more light would help, but you can play.'

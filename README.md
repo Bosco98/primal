@@ -31,22 +31,48 @@ and you move to the marks:
 ```
         LEFT       CENTRE      RIGHT
       ┌──────────┬──────────┬──────────┐
-      │          │          │          │  ── JUMP ──  get your feet above it
-      │    ●     │    ●     │    ●     │  stand in a band; hop to change lane
-      │          │          │          │  ── DUCK ──  get your hips below it
+      │          │          │          │
+      │ ──────────────────────────────  │  ── JUMP    hips above this
+      │    ●     │    ●     │    ●     │  ·· stand ·· where your hips rest
+      │ ──────────────────────────────  │  ── SQUAT   hips below this
+      │          │  (knees) │          │
       └──────────┴──────────┴──────────┘
 ```
 
 The horizontal bands are **absolute screen regions** — nothing to learn, and
-nothing that can drift. The jump and duck lines track rolling percentiles of
-*your own body*: a high percentile of ankle height for the ground (so jumps
-don't drag it down) and a low percentile of hip height for standing (so squats
-don't). They are drawn at their live positions, so what you see is exactly what
-the recogniser is testing.
+nothing that can drift.
+
+Both vertical lines hang off one tracked point, **your hips**, and one
+reference, the standing baseline:
+
+```
+jumpLine  = stand − 0.12 · torso                 ≈ 6cm of hip rise
+squatLine = stand + 0.62 · (knee − stand)        ≈ 22cm of hip drop
+```
+
+So `jump < stand < squat` holds by construction, for every body at every
+distance — the two lines *cannot* converge, because there is no arithmetic that
+brings them together. An earlier version measured the jump from the ankles
+against a ground reference and the squat from the hips against a standing one:
+two body parts, two independent references, and nothing stopping them meeting.
+When the player's feet left the frame they did exactly that.
+
+Deriving both from the hips also drops the requirement to see feet, and makes
+the moves mutually exclusive for free — a rise and a drop are the same
+subtraction with opposite signs.
+
+The baseline only samples while you are neither jumping nor squatting. A
+percentile alone follows you into a long squat, and then standing back up reads
+as a jump.
+
+The duck is a **half squat**, not a bob: hips two thirds of the way down to your
+knees. It is the move doing most of the work on your legs, so it is worth
+asking for properly.
 
 That is why there is no calibration. The old design learned your neutral pose
-over two seconds and then hid it; this one shows you the threshold and lets you
-move relative to it.
+over two seconds and then hid it; this one draws the skeleton, the marker on
+your hips and both lines at their live positions, so what you see is exactly
+what the recogniser is testing.
 
 Your hands are two cursors — reach out for the fireflies.
 
@@ -83,7 +109,7 @@ src/
 ├── types.ts          shapes shared between the pipeline and the game
 ├── pose/             camera, landmarks, per-frame geometry (MediaPipe)
 ├── control/
-│   ├── zones.ts      the controller: bands, jump line, duck line
+│   ├── zones.ts      the controller: bands, jump line, squat line
 │   ├── signals.ts    effort, framing checks, coaching
 │   ├── engine.ts     camera frame → control frame, in one call
 │   └── keyboard.ts   desk mode
@@ -92,7 +118,9 @@ src/
 │   ├── world.ts      obstacles, the pack, fireflies, scoring
 │   ├── scene.ts      canvas 2D, fake-3D projection
 │   └── config.ts     every tuned number, with why it is that number
-└── ui/               controller overlay, controls guide, stage
+└── ui/
+    ├── skeleton.ts   bones, joints, the hip marker, the mirroring
+    └── ...           controller overlay, controls guide, stage
 ```
 
 React owns the screens; `Run` owns everything inside a run. They are kept apart
@@ -112,3 +140,19 @@ coyote          120 ms   and this late
 scroll speed   ≤ 85 u/s  past this, obstacles become unreadable
                          before they become undodgeable
 ```
+
+## Tests
+
+```bash
+npm test        # controller geometry and the skeleton overlay
+npm run typecheck
+```
+
+They cover the two things a webcam cannot cheaply prove. A bad threshold does
+not throw — it quietly stops registering squats, and you find out by standing in
+front of a camera being ignored. A sign error in the mirroring draws a perfect
+skeleton on the wrong side of the picture, which looks fine in a screenshot and
+is maddening in motion. Both run headless against a synthetic body.
+
+What they do *not* cover is whether the thresholds feel right, which only a real
+person in front of a real camera can answer.

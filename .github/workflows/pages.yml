@@ -25,7 +25,11 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      # `build` runs tsc --noEmit first, so a type error fails the deploy.
+      # The controller's geometry is the one thing a browser cannot cheaply
+      # prove: a bad threshold does not throw, it just stops registering squats.
+      - run: npm test
+      - run: npm run typecheck
+      # `build` re-runs tsc on the app, so a type error also fails the deploy.
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

@@ -4,34 +4,45 @@ import type { Action, Band, Body } from '../types.js';
 /**
  * Zone controls — the calibration-free input scheme.
  *
- * The older path (`gestures.ts`) measures everything against a personal
- * baseline captured by standing still for two seconds. That is the right model
- * for rep counting, where "how deep is your squat *for you*" is the question.
- * It is the wrong model for a runner, and it costs the player a ritual before
- * they can play at all.
- *
- * Here the controls are a grid drawn on the camera preview. The player sees
- * themselves inside it and moves to the marks:
+ * The player sees themselves inside a grid and moves to the marks:
  *
  *        LEFT       CENTRE      RIGHT
  *      ┌──────────┬──────────┬──────────┐
- *      │    ·     │    ·     │    ·     │   ── JUMP line
- *      ├──────────┼──────────┼──────────┤
- *      │    ●     │    ●     │    ●     │   ← stand in a band
- *      ├──────────┼──────────┼──────────┤
- *      │    ·     │    ·     │    ·     │   ── DUCK line
+ *      │          │          │          │
+ *      │ ─────────────────────────────  │  ── JUMP   hips above this
+ *      │    ●     │    ●     │    ●     │  ·· STAND  where your hips live
+ *      │ ─────────────────────────────  │  ── SQUAT  hips below this
+ *      │          │  (knees) │          │
  *      └──────────┴──────────┴──────────┘
  *
  * Horizontal bands are absolute screen regions — nothing to learn, you simply
- * stand left, centre or right of frame, and hop between them.
+ * stand left, centre or right of frame and hop between them.
  *
- * Vertical lines cannot be absolute, because where your feet land in frame
- * depends on how far back you are standing. They track a rolling percentile of
- * your own body instead: the ground reference is where your ankles *usually*
- * are, the standing reference is where your hips *usually* are. That adapts
- * continuously with no ritual and no waiting, and — crucially — the lines are
- * drawn on screen at their live positions, so the player can always see exactly
- * where the threshold is relative to their own body.
+ * The two vertical lines both hang off a single tracked point, **the hips**,
+ * and a single reference, the standing baseline. That is the important property
+ * and it is deliberate. An earlier version measured the jump from the *ankles*
+ * against a ground reference and the squat from the *hips* against a standing
+ * reference: two different body parts, two independent references, drawn as two
+ * lines on one picture. Nothing stopped them meeting, and when the player's
+ * feet left the frame they did exactly that — the ground reference collapsed to
+ * the bottom edge and both lines piled up in the middle of the screen.
+ *
+ * Now:
+ *
+ *      jumpLine  = stand − JUMP_RISE · torso
+ *      squatLine = stand + SQUAT_DEPTH · (knee − stand)
+ *
+ * with `knee − stand` floored below. So `jumpLine < stand < squatLine` holds by
+ * construction, for every body, at every distance from the camera. The two
+ * lines cannot converge because there is no arithmetic that brings them
+ * together.
+ *
+ * It also makes the moves mutually exclusive for free: a rise and a drop are
+ * the same subtraction with opposite signs, so no frame can be both.
+ *
+ * And it drops the requirement to see feet. Hips and knees carry both controls,
+ * and they are the landmarks least likely to be cropped or occluded — the two
+ * things a webcam always has a clear view of when someone stands up to play.
  */
 
 /** How the play area is divided. Screen space (already mirrored), 0..1. */
@@ -39,19 +50,34 @@ export const ZONES = {
   /** A band edge. Enter decisively, leave reluctantly, so a wobble is not a hop. */
   BAND_ENTER: 0.20,
   BAND_EXIT: 0.12,
-  /** Ankles must rise this far above the ground reference, in torso lengths. */
-  JUMP_RISE: 0.07,
-  JUMP_RELEASE: 0.03,
-  /** Hips must drop this far below the standing reference, in torso lengths. */
-  DUCK_DROP: 0.18,
-  DUCK_RELEASE: 0.10,
-  /** Frames of history behind the rolling references (~2s at 30Hz). */
+  /**
+   * Hips must rise this far above the standing baseline, in torso lengths.
+   * ~0.12 torso is about 6cm on an adult: unmistakably a hop, and well clear of
+   * the couple of centimetres you gain rolling onto your toes.
+   */
+  JUMP_RISE: 0.12,
+  JUMP_RELEASE: 0.05,
+  /**
+   * Hips must drop this fraction of the way from standing to knee height.
+   * 1.0 would be a parallel squat; 0.62 is roughly a half squat — real work for
+   * the legs, but repeatable at the pace a runner asks for.
+   */
+  SQUAT_DEPTH: 0.62,
+  SQUAT_RELEASE: 0.34,
+  /**
+   * Hip-to-knee distance sits near 0.7 torso lengths standing. Clamping it
+   * stops one bad knee frame from throwing the squat line onto the baseline or
+   * off the bottom of the picture.
+   */
+  SPAN_MIN: 0.45,
+  SPAN_MAX: 1.1,
+  /** Frames of history behind the baseline (~2s at 30Hz). */
   HISTORY: 60,
 } as const;
 
 /** Everything the controller overlay needs to draw itself. */
 export interface ZoneState {
-  /** True once there is enough history for the vertical lines to mean anything. */
+  /** True once there is enough history for the baseline to mean anything. */
   ready: boolean;
   present: boolean;
   /** Player position in screen space, 0..1, mirrored. */
@@ -60,13 +86,16 @@ export interface ZoneState {
   band: Band;
   /** Screen-space y of the live thresholds, for drawing. */
   jumpLineY: number;
-  duckLineY: number;
-  groundY: number;
+  squatLineY: number;
+  /** The baseline itself, and where the knees are, both drawn as references. */
   standY: number;
+  kneeY: number;
   jumping: boolean;
   ducking: boolean;
-  /** 0..1 how far through a duck the player currently is. */
+  /** 0..1 how far through a squat the player currently is. 1 is the line. */
   duckProgress: number;
+  /** 0..1 how far through a jump. 1 is the line. */
+  jumpProgress: number;
 }
 
 const EMPTY: ZoneState = {
@@ -75,26 +104,27 @@ const EMPTY: ZoneState = {
   playerX: 0.5,
   playerY: 0.5,
   band: 0,
-  jumpLineY: 0.35,
-  duckLineY: 0.75,
-  groundY: 0.9,
+  jumpLineY: 0.42,
+  squatLineY: 0.66,
   standY: 0.55,
+  kneeY: 0.72,
   jumping: false,
   ducking: false,
   duckProgress: 0,
+  jumpProgress: 0,
 };
 
 export class ZoneRecognizer {
-  private ankleHistory: number[] = [];
   private hipHistory: number[] = [];
+  private kneeHistory: number[] = [];
   private band: Band = 0;
   private jumping = false;
   private ducking = false;
   private state: ZoneState = { ...EMPTY };
 
   reset(): void {
-    this.ankleHistory = [];
     this.hipHistory = [];
+    this.kneeHistory = [];
     this.band = 0;
     this.jumping = false;
     this.ducking = false;
@@ -118,32 +148,34 @@ export class ZoneRecognizer {
     const playerX = 1 - features.hipCenterX;
     const torso = Math.max(1e-3, features.torsoLength);
 
-    this.push(this.ankleHistory, features.ankleY);
-    this.push(this.hipHistory, features.hipY);
+    // Only sample the baseline while the player is neither jumping nor
+    // squatting. A percentile alone is not enough: hold a squat for a few
+    // seconds and even a low percentile follows you down, at which point simply
+    // standing back up reads as a jump. Freezing while a move is held means the
+    // baseline is always "where your hips rest", never "where they have been".
+    if (!this.jumping && !this.ducking) {
+      this.push(this.hipHistory, features.hipY);
+      this.push(this.kneeHistory, features.kneeY);
+    }
 
-    // Ground = where the ankles usually are. A jump makes ankleY smaller, so a
-    // high percentile ignores jumps rather than being dragged down by them.
-    const groundY = percentile(this.ankleHistory, 0.8);
-    // Standing = where the hips usually are. A squat makes hipY larger, so a
-    // low percentile ignores squats.
+    const ready = this.hipHistory.length >= 20;
+    // The 20th percentile is the hips near the top of their resting range, which
+    // is standing rather than mid-shift.
     const standY = percentile(this.hipHistory, 0.2);
+    const kneeRef = percentile(this.kneeHistory, 0.5);
+    const span = clamp(ZONES.SPAN_MIN * torso, ZONES.SPAN_MAX * torso, kneeRef - standY);
 
-    const rise = (groundY - features.ankleY) / torso;
-    const drop = (features.hipY - standY) / torso;
+    const rise = (standY - features.hipY) / torso;
+    const depth = (features.hipY - standY) / span;
 
     const events: Action[] = [];
-    const ready = this.ankleHistory.length >= 20;
 
-    if (ready && features.lowerBodyVisible) {
+    // Knees, not ankles: these are the landmarks both lines are built from.
+    if (ready && features.kneesVisible) {
       this.edge(events, 'JUMP', rise > ZONES.JUMP_RISE, rise > ZONES.JUMP_RELEASE, 'jumping');
-      // A player in the air is not squatting, whatever the hips say.
-      this.edge(
-        events,
-        'DUCK',
-        drop > ZONES.DUCK_DROP && rise < ZONES.JUMP_RISE,
-        drop > ZONES.DUCK_RELEASE,
-        'ducking',
-      );
+      // No exclusion guard needed. `rise` and `depth` are the same difference
+      // with opposite signs, so one is negative whenever the other is positive.
+      this.edge(events, 'DUCK', depth > ZONES.SQUAT_DEPTH, depth > ZONES.SQUAT_RELEASE, 'ducking');
     }
 
     // The band is a position, not an event: the game reads `state.band` and
@@ -156,29 +188,27 @@ export class ZoneRecognizer {
       playerX,
       playerY: features.hipY,
       band: this.band,
-      groundY,
       standY,
-      jumpLineY: groundY - ZONES.JUMP_RISE * torso,
-      duckLineY: standY + ZONES.DUCK_DROP * torso,
+      kneeY: kneeRef,
+      jumpLineY: standY - ZONES.JUMP_RISE * torso,
+      squatLineY: standY + ZONES.SQUAT_DEPTH * span,
       jumping: this.jumping,
       ducking: this.ducking,
-      duckProgress: clamp01(drop / ZONES.DUCK_DROP),
+      duckProgress: clamp01(depth / ZONES.SQUAT_DEPTH),
+      jumpProgress: clamp01(rise / ZONES.JUMP_RISE),
     };
 
     return events;
   }
 
   /**
-   * A `BodyPayload` with no baseline behind it.
+   * Continuous body state, with no baseline ritual behind it.
    *
    * `lean` is the player's actual position across the play area rather than a
-   * displacement from a remembered neutral, which means it cannot drift — the
-   * problem the old path needed re-baselining to survive.
+   * displacement from a remembered neutral, which means it cannot drift.
    */
   body(features: FrameFeatures): Body {
     const s = this.state;
-    const torso = Math.max(1e-3, features.torsoLength);
-    const drop = (features.hipY - s.standY) / torso;
     return {
       hands: {
         left: {
@@ -195,7 +225,8 @@ export class ZoneRecognizer {
       center: { x: s.playerX, y: features.hipY },
       head: { x: 1 - features.shoulderCenterX, y: features.headY },
       lean: clamp(-1, 1, (s.playerX - 0.5) / 0.3),
-      crouch: clamp01(drop / 0.45),
+      // Now a genuine squat depth: 0 standing, 1 hips level with the knees.
+      crouch: clamp01((features.hipY - s.standY) / Math.max(1e-3, s.kneeY - s.standY)),
     };
   }
 

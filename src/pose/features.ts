@@ -35,6 +35,7 @@ export interface FrameFeatures {
   /** Image space, 0..1, y down. */
   hipY: number;
   shoulderY: number;
+  kneeY: number;
   ankleY: number;
   shoulderCenterX: number;
   hipCenterX: number;
@@ -74,6 +75,12 @@ export interface FrameFeatures {
 
   /** Mean visibility across landmarks that matter, 0..1. */
   visibility: number;
+  /**
+   * Knees only. The zone controls need this and not `lowerBodyVisible`: both
+   * lines are measured from the hips and knees, so a player whose feet are
+   * cropped off the bottom of the frame can still play perfectly well.
+   */
+  kneesVisible: boolean;
   lowerBodyVisible: boolean;
   leftLowerBodyVisible: boolean;
   rightLowerBodyVisible: boolean;
@@ -97,6 +104,7 @@ export const EMPTY_FEATURES: FrameFeatures = {
   elbowAngleRight: 180,
   hipY: 0.5,
   shoulderY: 0.3,
+  kneeY: 0.7,
   ankleY: 0.9,
   shoulderCenterX: 0.5,
   hipCenterX: 0.5,
@@ -116,6 +124,7 @@ export const EMPTY_FEATURES: FrameFeatures = {
   hipSpeedY: 0,
   overallSpeed: 0,
   visibility: 0,
+  kneesVisible: false,
   lowerBodyVisible: false,
   leftLowerBodyVisible: false,
   rightLowerBodyVisible: false,
@@ -173,6 +182,7 @@ export class FeatureExtractor {
 
     const shoulderY = mean(at(LM.LEFT_SHOULDER).y, at(LM.RIGHT_SHOULDER).y);
     const hipY = mean(at(LM.LEFT_HIP).y, at(LM.RIGHT_HIP).y);
+    const kneeY = mean(at(LM.LEFT_KNEE).y, at(LM.RIGHT_KNEE).y);
     const ankleY = mean(at(LM.LEFT_ANKLE).y, at(LM.RIGHT_ANKLE).y);
     const shoulderCenterX = mean(at(LM.LEFT_SHOULDER).x, at(LM.RIGHT_SHOULDER).x);
     const hipCenterX = mean(at(LM.LEFT_HIP).x, at(LM.RIGHT_HIP).x);
@@ -201,6 +211,7 @@ export class FeatureExtractor {
     const rightLowerBodyVisible = [LM.RIGHT_KNEE, LM.RIGHT_ANKLE].every(
       (i) => at(i).visibility > 0.5,
     );
+    const kneesVisible = at(LM.LEFT_KNEE).visibility > 0.5 && at(LM.RIGHT_KNEE).visibility > 0.5;
     const lowerBodyVisible = leftLowerBodyVisible && rightLowerBodyVisible;
     const leftUpperBodyVisible = [LM.LEFT_SHOULDER, LM.LEFT_ELBOW, LM.LEFT_WRIST].every(
       (i) => at(i).visibility > 0.5,
@@ -244,6 +255,7 @@ export class FeatureExtractor {
       elbowAngleRight,
       hipY,
       shoulderY,
+      kneeY,
       ankleY,
       shoulderCenterX,
       hipCenterX,
@@ -264,6 +276,7 @@ export class FeatureExtractor {
       hipSpeedY: 0,
       overallSpeed: 0,
       visibility,
+      kneesVisible,
       lowerBodyVisible,
       leftLowerBodyVisible,
       rightLowerBodyVisible,

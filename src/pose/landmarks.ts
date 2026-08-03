@@ -2,10 +2,15 @@
  * MediaPipe Pose Landmarker emits 33 landmarks per person.
  *
  * Naming follows the subject's own body: LEFT_WRIST is the wrist on the
- * player's left hand. On a mirrored preview that appears on the *right* of the
- * screen, which is the single most common source of inverted-controls bugs
- * here. Everything crossing the protocol boundary is mirrored exactly once, in
- * `recognition/body.ts`.
+ * player's left hand.
+ *
+ * These are raw camera coordinates, so the player appears the way another
+ * person facing them would: their left hand sits at a HIGH x, on the image's
+ * right. The preview mirrors that back with `1 - x`, which returns the hand to
+ * screen-left, where the player expects it. That flip is the single most common
+ * source of inverted-controls bugs here, so it happens in exactly two places
+ * and nowhere else: `ZoneRecognizer` for anything the game reads, and
+ * `screenX` in `ui/skeleton.ts` for anything drawn.
  */
 export const LM = {
   NOSE: 0,
