@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Dodge and Collect">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#1b0f2e"/>
+    </linearGradient>
+    <linearGradient id="track" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1de9b6" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#1de9b6" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="200" fill="url(#sky)"/>
+
+  <!-- track receding to a vanishing point -->
+  <path d="M160 68 L250 200 L70 200 Z" fill="url(#track)"/>
+  <path d="M160 68 L190 200" stroke="#1de9b6" stroke-opacity="0.45" stroke-width="1"/>
+  <path d="M160 68 L130 200" stroke="#1de9b6" stroke-opacity="0.45" stroke-width="1"/>
+  <path d="M160 68 L250 200" stroke="#1de9b6" stroke-opacity="0.7" stroke-width="1.5"/>
+  <path d="M160 68 L70 200" stroke="#1de9b6" stroke-opacity="0.7" stroke-width="1.5"/>
+
+  <!-- horizon -->
+  <line x1="40" y1="68" x2="280" y2="68" stroke="#2de2c0" stroke-opacity="0.3" stroke-width="1"/>
+
+  <!-- hurdle (jump) -->
+  <rect x="132" y="112" width="56" height="7" rx="2" fill="#ff9f1c"/>
+  <!-- low beam (crouch) -->
+  <rect x="120" y="92" width="80" height="5" rx="2" fill="#4cc9f0" opacity="0.85"/>
+  <!-- lane wall (lean) -->
+  <rect x="196" y="140" width="34" height="26" rx="3" fill="#8d99ae" opacity="0.9"/>
+
+  <!-- coins in an arc, out of the resting silhouette -->
+  <g fill="#ffd60a">
+    <circle cx="96" cy="104" r="4"/>
+    <circle cx="108" cy="94" r="4"/>
+    <circle cx="124" cy="88" r="4"/>
+    <circle cx="214" cy="96" r="4"/>
+    <circle cx="228" cy="106" r="4"/>
+  </g>
+
+  <!-- runner at the commit line -->
+  <g fill="#f8f9fa">
+    <circle cx="160" cy="150" r="7"/>
+    <rect x="156" y="158" width="8" height="18" rx="3"/>
+    <rect x="150" y="176" width="6" height="14" rx="3"/>
+    <rect x="164" y="176" width="6" height="14" rx="3"/>
+  </g>
+
+  <!-- the Sweeper closing from behind -->
+  <path d="M96 200 Q160 176 224 200 Z" fill="#e63946" opacity="0.55"/>
+
+  <text x="20" y="34" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" fill="#f8f9fa" letter-spacing="1.5">DODGE &amp; COLLECT</text>
+  <text x="20" y="50" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" fill="#1de9b6" letter-spacing="1">LEAN · DUCK · JUMP · REACH</text>
+</svg>

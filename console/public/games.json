@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "_docs": {
+    "url": "Absolute https URLs point at games hosted on their own origins (each game repo's GitHub Pages). Relative URLs ('dodge-collect/') resolve against this console's own address, for cartridges served locally during development. Any page built with @bosco98/primal-sdk works — plug and play.",
+    "origin": "Derived from `url`, never configured: the console only completes a handshake with the origin it launched.",
+    "manifest": "What the game NEEDS (channels, exercises, minutes) lives in the game's own /primal.manifest.json, fetched at launch. This file only says which games exist and where.",
+    "note": "An HTTPS console can only embed HTTPS games (mixed content)."
+  },
+  "games": [
+    {
+      "id": "dodge-collect",
+      "title": "Dodge & Collect",
+      "tagline": "Lean, duck, jump · outrun the Sweeper",
+      "cover": "covers/dodge-collect.svg",
+      "url": "https://bosco98.github.io/primal-game-dodge-collect/",
+      "estimatedMinutes": 15
+    }
+  ]
+}

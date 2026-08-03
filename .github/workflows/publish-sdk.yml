@@ -1,0 +1,50 @@
+name: Publish SDK to GitHub Packages
+
+on:
+  push:
+    branches: [main]
+    paths: ['sdk/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: '@bosco98'
+
+      - name: Install
+        working-directory: sdk
+        run: npm ci
+
+      - name: Test
+        working-directory: sdk
+        run: npm test
+
+      - name: Build
+        working-directory: sdk
+        run: npm run build
+
+      # Releasing is a version bump in sdk/package.json and nothing else: a push
+      # that didn't bump simply skips, so this can run on every sdk/** change.
+      - name: Publish
+        working-directory: sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already published — skipping."
+          else
+            npm publish
+          fi

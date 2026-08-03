@@ -1,0 +1,58 @@
+{
+  "name": "@bosco98/primal-sdk",
+  "version": "0.2.0",
+  "description": "Build games for the PRIMAL motion console. Your body is the controller.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bosco98/primal.git",
+    "directory": "sdk"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/primal.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "npm run build:esm && npm run build:iife",
+    "build:esm": "tsc -p tsconfig.build.json",
+    "build:iife": "esbuild src/index.ts --bundle --format=iife --global-name=Primal --outfile=dist/primal.js --minify --sourcemap --target=es2022",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "fitness",
+    "exergame",
+    "pose-detection",
+    "mediapipe",
+    "game-sdk",
+    "primal"
+  ],
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "happy-dom": "^20.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

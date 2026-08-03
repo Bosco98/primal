@@ -1,0 +1,595 @@
+:root {
+  --bg: #100e0d;
+  --panel: #1a1716;
+  --line: #2c2725;
+  --text: #f2ede9;
+  --muted: #9b918b;
+  --flame: #ff5c2e;
+  --ember: #ffd65c;
+  --ok: #4ade80;
+  --bad: #f87171;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--flame);
+  box-shadow: 0 0 16px var(--flame);
+}
+
+.tagline {
+  margin: 4px 0 24px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Start screen ---------------------------------------------------------- */
+
+.start {
+  max-width: 560px;
+  padding: 32px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.start h2 {
+  margin: 0 0 14px;
+  font-size: 26px;
+}
+
+.start p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+.start .hint {
+  font-size: 14px;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: #262120;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+button:hover {
+  background: #302a28;
+  border-color: #3d3634;
+}
+
+button:focus-visible {
+  outline: 3px solid var(--ember);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+button.primary {
+  margin-top: 10px;
+  background: var(--flame);
+  border-color: var(--flame);
+  color: #1a0d07;
+  font-weight: 700;
+}
+
+button.primary:hover {
+  background: #ff7048;
+}
+
+.notice {
+  padding: 18px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.notice.error {
+  border-color: #4a2320;
+}
+
+/* Layout ---------------------------------------------------------------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #12100f;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.skeleton-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.banner {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(16, 14, 13, 0.9);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  font-size: 14px;
+}
+
+.banner.warn {
+  border-color: #4d3a1c;
+  color: var(--ember);
+}
+
+.progress {
+  margin-top: 8px;
+  height: 4px;
+  background: #2c2725;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress div {
+  height: 100%;
+  background: var(--flame);
+  transition: width 120ms linear;
+}
+
+/* Panels ---------------------------------------------------------------- */
+
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.panel h3 {
+  margin: 0 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.count {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sub {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Meters ---------------------------------------------------------------- */
+
+.meter {
+  margin-bottom: 10px;
+}
+
+.meter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.meter-track {
+  height: 6px;
+  background: #2c2725;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--flame), var(--ember));
+  transition: width 90ms linear;
+}
+
+/* Flags and pills -------------------------------------------------------- */
+
+.flags,
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.flag,
+.pill {
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.flag {
+  border-color: #4d3a1c;
+  color: var(--ember);
+}
+
+.flag.good {
+  border-color: #1f4a30;
+  color: var(--ok);
+}
+
+.pill.on {
+  background: var(--flame);
+  border-color: var(--flame);
+  color: #1a0d07;
+  font-weight: 700;
+}
+
+/* Stats ------------------------------------------------------------------ */
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.stats dt {
+  color: var(--muted);
+}
+
+.stats dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats dd.ok {
+  color: var(--ok);
+}
+
+.stats dd.bad {
+  color: var(--bad);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button {
+  flex: 1;
+}
+
+.recording-controls {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 16px;
+  width: min(220px, calc(46% - 24px));
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(16, 14, 13, 0.92);
+  border: 1px solid rgba(242, 237, 233, 0.22);
+}
+
+.exercise-calibration-controls {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  left: 16px;
+  width: min(250px, calc(54% - 24px));
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(16, 14, 13, 0.92);
+  border: 1px solid rgba(242, 237, 233, 0.22);
+}
+
+.exercise-calibration-controls.active {
+  border-color: var(--ember);
+  background: rgba(16, 14, 13, 0.96);
+}
+
+.exercise-calibration-controls > button {
+  width: 100%;
+  font-weight: 700;
+}
+
+.exercise-calibration-controls > button:not(:disabled) {
+  background: var(--flame);
+  border-color: var(--flame);
+  color: #1a0d07;
+}
+
+.exercise-calibration-progress {
+  margin: 2px 0 8px;
+  color: var(--ember);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.exercise-calibration-help {
+  margin: 7px 2px 0;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.exercise-calibration-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.exercise-calibration-controls .cancel-calibration,
+.exercise-calibration-controls .finish-calibration {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.exercise-calibration-controls .cancel-calibration {
+  color: var(--muted);
+}
+
+.exercise-calibration-controls .finish-calibration {
+  border-color: var(--ember);
+  color: var(--ember);
+}
+
+.recording-controls.active {
+  border-color: var(--bad);
+}
+
+.recording-controls button {
+  width: 100%;
+  font-weight: 700;
+}
+
+.recording-controls .save-recording {
+  background: var(--bad);
+  border-color: var(--bad);
+  color: #1a0d07;
+}
+
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 8px;
+  color: var(--bad);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bad);
+}
+
+.recording-help {
+  margin: 7px 2px 0;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.sub.phase {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+  color: var(--ember);
+  margin-bottom: 12px;
+}
+
+.warn-text {
+  color: var(--ember);
+}
+
+button.pill {
+  cursor: pointer;
+  background: transparent;
+}
+
+button.pill:hover {
+  border-color: #3d3634;
+  color: var(--text);
+}
+
+button.pill.on:hover {
+  background: #ff7048;
+}
+
+@media (max-width: 560px) {
+  .exercise-calibration-controls,
+  .recording-controls {
+    width: calc(50% - 24px);
+  }
+
+  .exercise-calibration-controls {
+    left: 10px;
+  }
+
+  .recording-controls {
+    right: 10px;
+  }
+
+  .exercise-calibration-controls,
+  .recording-controls {
+    top: 10px;
+    padding: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .progress div,
+  .meter-fill {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Game library and stage                                                  */
+/* ---------------------------------------------------------------------- */
+
+.library {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.library__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.library__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.library__cover {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.library__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* The stage owns the screen: a game the player is jumping in front of should
+   never share the viewport with a debug dashboard. */
+.game-stage {
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+
+.game-stage__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.game-stage__curtain {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: rgba(6, 8, 16, 0.92);
+  text-align: center;
+  padding: 2rem;
+}
+
+.game-stage__exit {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.game-stage__preview-slot {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  width: 200px;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}

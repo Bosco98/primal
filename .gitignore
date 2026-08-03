@@ -1,0 +1,16 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+.env
+.env.*
+
+# Pose recordings are debug samples, sometimes megabytes each.
+*.pose.json
+
+# Game repos checked out alongside the console for local development.
+# Each is its own repository; see docs/BUILDING-A-GAME.md.
+/games/
+/primal-game-*/

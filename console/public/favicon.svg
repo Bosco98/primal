@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#100e0d"/>
+  <!-- A bolt: motion in, power out. -->
+  <path d="M18.5 3 L9 17.5h5.5L13 29l10-15h-5.6z" fill="#ff5c2e"/>
+</svg>
