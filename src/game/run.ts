@@ -65,8 +65,10 @@ export class Run {
   }
 
   stop(): void {
+    if (this.stopped) return;
     this.stopped = true;
     cancelAnimationFrame(this.raf);
+    this.scene.dispose();
   }
 
   setPaused(paused: boolean): void {

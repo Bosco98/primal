@@ -1,9 +1,8 @@
 # THE HERD
 
-An endless runner where **your body is the controller**. Dusk on the savannah,
-you are separated from the herd, and something is pacing you in the long grass.
-Hop between lanes, clear the fallen logs, duck the low branches — and keep
-working, because they close in the moment you flag.
+A bright three-minute movement runner where **your body is the controller**.
+Turn your room into an arcade track: hop between lanes, clear the logs, duck
+the overhead gates, reach for energy, and keep the pace crew behind you.
 
 **Play:** https://bosco98.github.io/primal/
 
@@ -121,7 +120,7 @@ src/
 ├── game/
 │   ├── run.ts        the fixed-timestep loop
 │   ├── world.ts      obstacles, the pack, fireflies, scoring
-│   ├── scene.ts      canvas 2D, fake-3D projection
+│   ├── scene.ts      pooled, adaptive Three.js renderer
 │   └── config.ts     every tuned number, with why it is that number
 └── ui/
     ├── skeleton.ts   bones, joints, the hip marker, the mirroring

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { drawSkeleton, screenX } from './skeleton.ts';
+import { BONE, COOL, WARM, drawSkeleton, screenX } from './skeleton.ts';
 import { LM } from '../pose/landmarks.ts';
 import type { Landmark } from '../pose/types.ts';
 
@@ -147,9 +147,9 @@ test('the hip marker takes the colour of the move being held', () => {
     return dot?.fill ?? '';
   };
 
-  assert.match(tintOf(true, false), /255,159,28/, 'jumping is warm');
-  assert.match(tintOf(false, true), /76,201,240/, 'ducking is cool');
-  assert.match(tintOf(false, false), /235,242,255/, 'resting is neutral');
+  assert.ok(tintOf(true, false).includes(WARM), 'jumping is warm');
+  assert.ok(tintOf(false, true).includes(COOL), 'ducking is cool');
+  assert.ok(tintOf(false, false).includes(BONE), 'resting is neutral');
 });
 
 test('a body with no hips draws bones but no marker', () => {

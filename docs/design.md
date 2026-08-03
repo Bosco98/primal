@@ -542,37 +542,26 @@ On top of the existing list:
 
 ## 12. The theme, and why it is this one
 
-The mechanic came first and the theme was fitted to it, which is the right way
-round and worth recording.
+The mechanic came first: a group gains when you coast and falls back when you
+work. The current theme presents that pressure as a **pace crew** in a sunny
+outdoor movement playground. They are competition, not horror. This keeps the
+anti-coasting rule instantly understandable while making another three-minute
+round feel inviting.
 
-The pack's defining behaviour is already in the maths: it gains when you coast
-and falls back when you work. That is not how a machine behaves, and it is not
-how fire behaves either — both of those close in at a constant rate regardless
-of you. It is precisely how a predator behaves. A big cat does not sprint at a
-herd; it paces, and it commits when something flags.
+Two consequences are load-bearing:
 
-So the effort term stopped needing an explanation the moment the chaser became
-alive. "They can hear you slowing down" is a sentence a player accepts
-instantly. "The wall of energy accelerates when your ten-second average
-intensity drops below 0.5" is not.
-
-Two consequences follow, and both are load-bearing:
-
-- **The pack is read through the world, never off a bar.** Eyes in the grass
-  that multiply as the gap closes, a dark mass rising behind you, and your own
-  shadow thrown forward up the track by the low sun behind them. A player at
-  170bpm cannot read a HUD; they can absolutely count eyes.
-- **Dusk is a readability risk, and it is contained deliberately.** A
-  low-contrast violet-and-gold palette is exactly the kind of art direction that
-  quietly ruins a runner, because the thing you must read in 1.1 seconds stops
-  being the brightest thing on screen. So atmosphere lives strictly in the
-  background layers, and every obstacle keeps its colour code regardless of what
-  the scene is doing:
+- **Pressure is read through the world, not a paragraph.** The pace crew enters
+  the frame as the gap closes, the edge meter changes state, and successful
+  movement pushes the whole scene back toward calm.
+- **Hazards use shape and color together.** A player at a high heart rate must
+  identify the movement before they can read a label:
 
   | Obstacle | Form | Colour | Movement |
   |---|---|---|---|
-  | Hurdle | fallen log | **amber** | jump |
-  | Beam | low branch | **cyan** | duck |
-  | Wall | thorn thicket | **pale grey** | change lane |
+  | Hurdle | round log | **orange** | jump |
+  | Beam | overhead gate | **teal** | duck |
+  | Wall | solid training block | **coral** | change lane |
 
-  The rule generalises: **the theme may own everything that cannot hurt you.**
+The bright cyan, citrus, coral, cobalt, and green palette is functional: it
+keeps the scene cheerful, gives every action a distinct signal, and maintains
+contrast without turning the workout into a dark dashboard.

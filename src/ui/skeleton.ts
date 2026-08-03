@@ -13,10 +13,10 @@ import type { Landmark } from '../pose/types.js';
  * able to assert on directly.
  */
 
-export const BONE = '235,242,255';
-export const ACCENT = '29,233,182';
-export const WARM = '255,159,28';
-export const COOL = '76,201,240';
+export const BONE = '251,254,255';
+export const ACCENT = '22,93,255';
+export const WARM = '255,166,43';
+export const COOL = '38,198,184';
 
 /**
  * Screen x for an image-space landmark.

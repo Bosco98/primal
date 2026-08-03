@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { usePose } from './usePose.js';
 import { coachFor } from './control/signals.js';
 import { ControllerOverlay } from './ui/ControllerOverlay.js';
 import { ControlsGuide } from './ui/ControlsGuide.js';
-import { Stage } from './ui/Stage.js';
 import type { RunSummary } from './types.js';
+
+// Keep Three.js and the gameplay renderer out of the title-screen bundle. In
+// camera mode it loads during framing, before the hands-free countdown ends;
+// on slower connections the explicit fallback is still preferable to a blank
+// first paint.
+const Stage = lazy(() => import('./ui/Stage.js').then((module) => ({ default: module.Stage })));
 
 type Screen = 'title' | 'framing' | 'playing' | 'summary';
 
@@ -69,6 +74,7 @@ export default function App(): React.JSX.Element {
   const beginFraming = (): void => {
     setDeskMode(false);
     setScreen('framing');
+    void import('./ui/Stage.js');
     void start();
   };
 
@@ -85,48 +91,73 @@ export default function App(): React.JSX.Element {
 
   if (screen === 'playing') {
     return (
-      <Stage
-        video={video}
-        sinkRef={sinkRef}
-        deskMode={deskMode}
-        onEnd={(result) => {
-          setSummary(result);
-          setScreen('summary');
-        }}
-        onQuit={goHome}
-      />
+      <Suspense fallback={<div className="game-loading"><b>Building your track…</b><span>One quick breath.</span></div>}>
+        <Stage
+          video={video}
+          sinkRef={sinkRef}
+          deskMode={deskMode}
+          onEnd={(result) => {
+            setSummary(result);
+            setScreen('summary');
+          }}
+          onQuit={goHome}
+        />
+      </Suspense>
     );
   }
 
   return (
     <div className="app">
       <header className="masthead">
-        <h1>
-          THE HERD<span className="dot" />
-        </h1>
-        <p className="tagline">dusk on the savannah · something is pacing you</p>
+        <a className="brand" href={import.meta.env.BASE_URL} aria-label="The Herd home">
+          <span className="brand__mark" aria-hidden>H</span>
+          <span>THE HERD</span>
+        </a>
+        <p className="tagline">A three-minute movement run</p>
       </header>
 
       {screen === 'title' && (
-        <section className="card">
-          <p className="lede">
-            Your body is the controller. Hop between lanes, clear the fallen logs, duck the
-            low branches — and keep working, because they close in the moment you flag.
-          </p>
-          <p className="fine">
-            The camera never leaves this machine. Nothing is uploaded, nothing is recorded.
-          </p>
-          <div className="row">
-            <button type="button" className="primary" onClick={beginFraming}>
-              Start
+        <section className="home">
+          <div className="home__copy">
+            <p className="session-pill">No equipment · 3 minutes · full body</p>
+            <h1>Run wild.<br />Move big.</h1>
+            <p className="lede">
+              Turn your room into an arcade track. Jump, squat, hop and reach — your body
+              controls every move.
+            </p>
+            <div className="row home__actions">
+              <button type="button" className="primary" onClick={beginFraming}>
+                Start moving <span aria-hidden>→</span>
+              </button>
+              <button type="button" className="secondary" onClick={() => setShowGuide(true)}>
+                See the moves
+              </button>
+            </div>
+            <button type="button" className="link" onClick={beginDeskRun}>
+              No camera? Try keyboard mode
             </button>
-            <button type="button" onClick={() => setShowGuide(true)}>
-              How to play
-            </button>
+            <p className="privacy-note">
+              <span aria-hidden>●</span> Private by design — camera processing stays on this device.
+            </p>
           </div>
-          <button type="button" className="link" onClick={beginDeskRun}>
-            No camera? Play at a desk with the keyboard
-          </button>
+
+          <div className="workout-visual" aria-hidden>
+            <span className="workout-visual__sun" />
+            <span className="workout-visual__cloud cloud--one" />
+            <span className="workout-visual__cloud cloud--two" />
+            <div className="workout-visual__track">
+              <i /><i />
+            </div>
+            <div className="workout-visual__runner">
+              <span className="runner__head" />
+              <span className="runner__body" />
+              <span className="runner__arm runner__arm--left" />
+              <span className="runner__arm runner__arm--right" />
+              <span className="runner__leg runner__leg--left" />
+              <span className="runner__leg runner__leg--right" />
+            </div>
+            <p><strong>60</strong> moves to a stronger finish</p>
+          </div>
         </section>
       )}
 
@@ -167,7 +198,7 @@ export default function App(): React.JSX.Element {
               </div>
               <p className={tracking.playable ? 'framing__status ok' : 'framing__status'}>
                 {tracking.playable
-                  ? 'Good — hold that and the run starts by itself.'
+                  ? 'You’re ready — stay there and we’ll start together.'
                   : coachFor(tracking)}
               </p>
               <div className="row">
@@ -186,8 +217,9 @@ export default function App(): React.JSX.Element {
       {screen === 'summary' && summary && (
         <section className="card summary">
           <h2 className={summary.outcome === 'caught' ? 'bad' : 'good'}>
-            {summary.outcome === 'caught' ? 'Taken' : 'You made it'}
+            {summary.outcome === 'caught' ? 'Strong effort' : 'Finish strong!'}
           </h2>
+          <p className="summary__label">Your run score</p>
           <p className="summary__score">{summary.score.toLocaleString()}</p>
           <ul className="summary__stats">
             <li>

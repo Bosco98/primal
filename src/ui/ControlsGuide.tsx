@@ -84,8 +84,8 @@ export function ControlsGuide({ onClose }: { onClose(): void }): React.JSX.Eleme
         </ul>
 
         <p className="guide__note">
-          Move hard and you gain ground. Coast, and whatever is behind you closes in —
-          that is the whole game.
+          Move with purpose and your gap grows. The game rewards full, confident movement —
+          exactly what makes the workout count.
         </p>
 
         <button type="button" className="guide__done" onClick={onClose}>

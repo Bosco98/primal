@@ -70,12 +70,13 @@ export function ControllerOverlay({
         ctx.drawImage(video, 0, 0, w, h);
         ctx.restore();
       } else {
-        ctx.fillStyle = '#0b0f1a';
+        ctx.fillStyle = '#c9f4ff';
         ctx.fillRect(0, 0, w, h);
       }
 
-      // Darken the feed so the grid stays readable over a bright room.
-      ctx.fillStyle = 'rgba(6,8,16,0.46)';
+      // A light navy wash keeps the grid readable without turning framing into
+      // a dark screen. The person and room remain easy to recognise.
+      ctx.fillStyle = 'rgba(18,35,63,0.28)';
       ctx.fillRect(0, 0, w, h);
 
       const frame = frameRef.current;
@@ -129,7 +130,7 @@ function drawBands(
 
   if (!labelled) return;
   const centres = [edges[0]! / 2, 0.5, (1 + edges[1]!) / 2];
-  ctx.font = '600 11px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.font = '800 11px "Avenir Next", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ['LEFT', 'CENTRE', 'RIGHT'].forEach((label, i) => {
     const on = (i - 1) === active && zones?.present;
@@ -178,7 +179,7 @@ function drawLines(
   line(ctx, w, squatY, `rgba(${COOL},${zones.ducking ? 1 : 0.6})`, (zones.ducking ? 4 : 2.2) * scale);
 
   if (!labelled) return;
-  ctx.font = '700 11px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.font = '800 11px "Avenir Next", "Segoe UI", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillStyle = `rgba(${WARM},0.95)`;
   ctx.fillText('JUMP — hips above this', 10, jumpY - 7);
@@ -204,7 +205,7 @@ function drawWaiting(
   labelled: boolean,
 ): void {
   if (!labelled) return;
-  ctx.font = '600 14px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.font = '750 14px "Avenir Next", "Segoe UI", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(248,249,250,0.8)';
   ctx.fillText('Step back until your whole body is in view', w / 2, h / 2 - 40);
