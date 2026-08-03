@@ -76,6 +76,11 @@ what the recogniser is testing.
 
 Your hands are two cursors — reach out for the fireflies.
 
+**Nothing past the title screen needs a click**, because the player is standing
+two metres from the machine — framed by the camera and out of reach of the
+mouse at the same time. Hold a good position and the run counts itself down and
+starts; jump on the summary screen to go again; Escape quits a run.
+
 ## Why it makes you work
 
 **The pack** replaces a lives counter. One number, your gap in metres, that
@@ -130,8 +135,19 @@ fixed clock, and mixing them is how an effect ends up tearing down mid-frame.
 ## Timing, and why the windows are generous
 
 The pipeline — camera, MediaPipe, zone recognition, simulation, render — runs
-**140–200ms end to end**, and no code here will shorten that. So the design
-absorbs it instead of pretending otherwise:
+**140–200ms end to end**. Two things claw part of that back:
+
+- **Prediction.** Once your hips are past halfway to a line *and moving
+  decisively toward it*, the trigger fires on where they will be in 100ms, not
+  where they are. The halfway gate keeps a single jittery frame from firing a
+  move from rest.
+- **Grace, not panic.** Knee confidence flickers exactly when motion blur is
+  highest — mid-move. The recogniser trusts the geometry for 400ms past the
+  last confident sighting, and the run only freezes after tracking has been
+  lost for a sustained 700ms, so a flicker never swallows a jump or pauses the
+  game.
+
+The rest the design absorbs instead of pretending otherwise:
 
 ```
 telegraph     ≥ 1.10 s   asserted at runtime, not trusted

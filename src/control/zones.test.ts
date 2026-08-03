@@ -26,6 +26,7 @@ function frame(hipY: number, kneeY = STAND_KNEE): FrameFeatures {
   return {
     t: 0,
     present: true,
+    hipSpeedY: 0,
     hipY,
     kneeY,
     ankleY: 0.9,
@@ -98,10 +99,42 @@ test('holding a squat does not drag the baseline down with it', () => {
   assert.ok(!events.includes('JUMP'), `standing up fired ${events.join(',')}`);
 });
 
-test('nothing fires while the knees are out of frame', () => {
+test('a knee-visibility flicker does not swallow a move, sustained loss blocks it', () => {
+  // Knee confidence dips below threshold for a few frames exactly when motion
+  // blur is highest — mid-move. A short grace keeps the geometry trusted
+  // through the flicker; past it, the knees are genuinely gone and nothing
+  // may fire.
   const zones = standing();
-  const hidden = { ...frame(STAND_HIP + SPAN * 0.9), kneesVisible: false };
-  assert.deepEqual(zones.update(hidden), []);
+  const flicker = { ...frame(STAND_HIP + SPAN * 0.9), kneesVisible: false, t: 200 };
+  assert.deepEqual(zones.update(flicker), ['DUCK'], 'a 200ms dropout is blur, not absence');
+
+  const gone = standing();
+  const hidden = { ...frame(STAND_HIP + SPAN * 0.9), kneesVisible: false, t: 1000 };
+  assert.deepEqual(gone.update(hidden), [], 'a 1s dropout means the knees left the frame');
+});
+
+test('hips moving fast toward a line fire early; a slow drift does not', () => {
+  // The pipeline runs ~100ms behind the body. Once past halfway and moving
+  // decisively, the trigger fires on the predicted position, which hands most
+  // of that latency back. Velocity alone must never fire from rest.
+  const partWay = STAND_HIP - ZONES.JUMP_RISE * TORSO * 0.6;
+
+  const fast = standing();
+  assert.deepEqual(
+    fast.update({ ...frame(partWay), hipSpeedY: -1.0 }),
+    ['JUMP'],
+    '60% of the way there and rising a torso-length per second is a jump',
+  );
+
+  const drift = standing();
+  assert.deepEqual(drift.update({ ...frame(partWay), hipSpeedY: -0.2 }), []);
+
+  const jitter = standing();
+  assert.deepEqual(
+    jitter.update({ ...frame(STAND_HIP), hipSpeedY: -3.0 }),
+    [],
+    'a velocity spike with the hips still at rest is noise, not a jump',
+  );
 });
 
 test('thresholds land in the right place on a real body', () => {

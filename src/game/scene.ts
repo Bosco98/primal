@@ -20,14 +20,27 @@ import type { Point2 } from '../types.js';
  * physically are while jumping and squatting:
  *  - Everything critical lives in the top 15%. A player mid-squat cannot read
  *    the bottom of the screen.
- *  - The runner sits above the bottom edge, leaving room for the neutral-stance
- *    ghost and the pack's silhouette.
+ *  - The runner sits above the bottom edge, leaving room for the pack.
  *  - The burn meter spans the full width so it is readable peripherally.
+ *
+ * The sense of speed comes from the verge, not the track: grass tufts
+ * streaming past on both sides cross the whole screen and visually accelerate
+ * as they near the camera. The track itself stays calm so obstacles pop.
  */
 
 const HORIZON = 0.34;
 const GROUND = 0.82;
 const LANE_SPREAD = 0.3;
+
+/**
+ * Deterministic 0..1 from an integer. All scattered scenery (stars, tufts,
+ * trees) is derived from this so it holds still between frames — per-frame
+ * Math.random() here would make the whole backdrop shimmer.
+ */
+function hash(n: number): number {
+  const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
 
 export class Scene {
   private readonly ctx: CanvasRenderingContext2D;
@@ -42,8 +55,8 @@ export class Scene {
   }
 
   resize(): void {
-    // The GPU is shared with MediaPipe in the parent frame; never render above
-    // 1.5x, whatever the display claims it wants.
+    // The GPU is shared with MediaPipe; never render above 1.5x, whatever the
+    // display claims it wants.
     this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const rect = this.canvas.getBoundingClientRect();
     this.w = Math.max(1, rect.width);
@@ -75,16 +88,23 @@ export class Scene {
     ctx.scale(this.dpr, this.dpr);
 
     this.sky(world);
+    this.backdrop(world);
     this.track(world);
+    this.grass(world);
     this.coins(world);
     this.obstacles(world);
     this.runner(world, lanes);
     this.pack(world);
     this.handCursors(hands);
+    this.vignette();
     this.hud(world);
 
     ctx.restore();
   }
+
+  /* ---------------------------------------------------------------------- */
+  /* Background                                                              */
+  /* ---------------------------------------------------------------------- */
 
   private sky(world: World): void {
     const ctx = this.ctx;
@@ -107,19 +127,111 @@ export class Scene {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
 
-    // A low sun sitting on the horizon, so the dusk reads as dusk.
     const hy = this.h * HORIZON;
+
+    // First stars of the evening, thinning toward the light at the horizon.
+    for (let i = 0; i < 70; i++) {
+      const sx = hash(i) * this.w;
+      const sy = hash(i + 100) * hy * 0.85;
+      const twinkle = 0.35 + 0.65 * Math.abs(Math.sin(world.elapsed * 1.6 + i * 1.93));
+      const a = (1 - sy / hy) * 0.5 * twinkle;
+      const size = i % 9 === 0 ? 2 : 1;
+      ctx.fillStyle = `rgba(240,238,255,${a.toFixed(3)})`;
+      ctx.fillRect(sx, sy, size, size);
+    }
+
+    // A low sun with a genuine glow. Drawn before the tree line, so it sets
+    // behind the savannah instead of floating on it.
+    const sunX = this.w * 0.5;
+    const sunY = hy + 8;
+    const sunR = this.h * 0.09;
+    const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR * 3);
+    glow.addColorStop(0, surge ? 'rgba(255,224,130,0.5)' : 'rgba(255,170,90,0.38)');
+    glow.addColorStop(0.35, surge ? 'rgba(255,214,10,0.18)' : 'rgba(255,140,70,0.14)');
+    glow.addColorStop(1, 'rgba(255,140,70,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(sunX - sunR * 3, sunY - sunR * 3, sunR * 6, sunR * 6);
     ctx.beginPath();
-    ctx.arc(this.w * 0.5, hy + 6, this.h * 0.075, 0, Math.PI * 2);
-    ctx.fillStyle = surge ? 'rgba(255,214,10,0.34)' : 'rgba(255,150,80,0.22)';
+    ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
+    ctx.fillStyle = surge ? 'rgba(255,224,130,0.55)' : 'rgba(255,190,110,0.5)';
     ctx.fill();
+  }
+
+  /**
+   * Parallax savannah: a far ridge, a line of acacias, a near ridge. Each
+   * drifts with distance at a different, far slower rate than the track —
+   * which is most of what makes the fake-3D read as a world moving past
+   * rather than shapes sliding down a screen.
+   */
+  private backdrop(world: World): void {
+    const ctx = this.ctx;
+    const hy = this.h * HORIZON;
+
+    // Land is dark at dusk; only the sky glows. Without this plain the sunset
+    // gradient continues below the horizon and the ridge silhouettes end in a
+    // hard stripe with bright sky underneath — which reads as a glitch, not a
+    // landscape. It also gives the gold track and grass something to sit on.
+    const plain = ctx.createLinearGradient(0, hy, 0, this.h);
+    plain.addColorStop(0, world.surge > 0 ? '#5c3838' : '#3f2739');
+    plain.addColorStop(0.4, '#2b1a2b');
+    plain.addColorStop(1, '#1c1120');
+    ctx.fillStyle = plain;
+    ctx.fillRect(0, hy, this.w, this.h - hy);
+
+    this.ridge(hy, world.distance * 0.15, this.h * 0.045, '#241636', 0);
+    this.acacias(hy + 2, world.distance * 0.3);
+    this.ridge(hy + 2, world.distance * 0.45, this.h * 0.022, '#170d22', 40);
 
     // Danger reads through the world, not through a bar: at close range the
-    // whole screen tightens.
+    // whole backdrop tightens. Drawn before the track so obstacles stay lit.
     if (world.gap < 25) {
       const t = 1 - world.gap / 25;
       ctx.fillStyle = `rgba(120,10,20,${0.08 + t * 0.26})`;
       ctx.fillRect(0, 0, this.w, this.h);
+    }
+  }
+
+  private ridge(hy: number, scrollPx: number, amp: number, color: string, seed: number): void {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    ctx.moveTo(0, hy + 3);
+    for (let x = 0; x <= this.w + 16; x += 16) {
+      const t = x + scrollPx;
+      const y =
+        hy -
+        amp * (0.55 + 0.45 * Math.sin(t * 0.008 + seed)) -
+        amp * 0.7 * Math.sin(t * 0.0027 + seed * 1.7);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(this.w, hy + 3);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  private acacias(hy: number, scrollPx: number): void {
+    const ctx = this.ctx;
+    ctx.fillStyle = '#150b20';
+    ctx.strokeStyle = '#150b20';
+    const spacing = 300;
+    const count = Math.ceil(this.w / spacing) + 2;
+    const span = count * spacing;
+    for (let i = 0; i < count; i++) {
+      const x = ((((i * spacing + hash(i) * 180 - scrollPx) % span) + span) % span) - spacing;
+      const s = 0.65 + hash(i + 9) * 0.55;
+      // Trunk, forking into the canopy.
+      ctx.lineWidth = 2.5 * s;
+      ctx.beginPath();
+      ctx.moveTo(x, hy);
+      ctx.lineTo(x + 2 * s, hy - 22 * s);
+      ctx.moveTo(x + 2 * s, hy - 14 * s);
+      ctx.lineTo(x + 10 * s, hy - 24 * s);
+      ctx.stroke();
+      // The flat-topped canopy that says "savannah" in one shape.
+      ctx.beginPath();
+      ctx.ellipse(x + 4 * s, hy - 27 * s, 30 * s, 6.5 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(x + 8 * s, hy - 32 * s, 16 * s, 4.5 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
@@ -163,6 +275,43 @@ export class Scene {
     }
   }
 
+  /**
+   * Grass streaming past on both verges, at true scroll speed. The strongest
+   * speed cue in the scene: it crosses the whole screen and visually
+   * accelerates as it nears the camera, exactly like a roadside.
+   */
+  private grass(world: World): void {
+    const ctx = this.ctx;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 44; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const laneX = side * (1.75 + hash(i) * 1.7);
+      const z =
+        (((hash(i + 50) * TRACK_DEPTH - world.distance) % TRACK_DEPTH) + TRACK_DEPTH) %
+        TRACK_DEPTH;
+      const p = this.project(z, laneX);
+      if (p.s < 0.3) continue;
+      const height = (12 + hash(i + 80) * 20) * p.s;
+      ctx.strokeStyle = `rgba(196,164,96,${((p.s - 0.25) * 0.5).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1, 2.2 * p.s);
+      for (let blade = -1; blade <= 1; blade++) {
+        ctx.beginPath();
+        ctx.moveTo(p.x + blade * 3 * p.s, p.y);
+        ctx.quadraticCurveTo(
+          p.x + blade * 5 * p.s,
+          p.y - height * 0.6,
+          p.x + blade * 9 * p.s + side * 4 * p.s,
+          p.y - height,
+        );
+        ctx.stroke();
+      }
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* World objects                                                           */
+  /* ---------------------------------------------------------------------- */
+
   private obstacles(world: World): void {
     const ctx = this.ctx;
     // Far to near, so nearer things overdraw.
@@ -175,25 +324,91 @@ export class Scene {
       if (o.type === 'hurdle') {
         // Fallen log across the track. AMBER = get your feet over it.
         const width = w * 2.4;
+        const hgt = 15 * p.s;
+        const top = p.y - hgt - 2 * p.s;
         ctx.fillStyle = `rgba(255,159,28,${alpha})`;
-        roundRect(ctx, p.x - width / 2, p.y - 16 * p.s, width, 14 * p.s, 7 * p.s);
-        ctx.fillStyle = `rgba(120,66,12,${alpha * 0.9})`;
-        roundRect(ctx, p.x - width / 2, p.y - 6 * p.s, width, 5 * p.s, 2 * p.s);
+        roundRect(ctx, p.x - width / 2, top, width, hgt, hgt / 2);
+        ctx.fillStyle = `rgba(140,74,10,${alpha * 0.55})`;
+        roundRect(ctx, p.x - width / 2, top + hgt * 0.55, width, hgt * 0.45, hgt * 0.22);
+        // Sawn end grain on both ends, so it reads as a log and not a bar.
+        for (const e of [-1, 1]) {
+          ctx.beginPath();
+          ctx.ellipse(p.x + (e * width) / 2, top + hgt / 2, 5 * p.s, hgt / 2, 0, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,214,150,${alpha})`;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(p.x + (e * width) / 2, top + hgt / 2, 2.4 * p.s, hgt / 4, 0, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(150,84,20,${alpha})`;
+          ctx.fill();
+        }
+        // A snapped branch stub.
+        ctx.strokeStyle = `rgba(255,159,28,${alpha})`;
+        ctx.lineWidth = 3.5 * p.s;
+        ctx.beginPath();
+        ctx.moveTo(p.x - width * 0.18, top + 2 * p.s);
+        ctx.lineTo(p.x - width * 0.23, top - 11 * p.s);
+        ctx.stroke();
       } else if (o.type === 'beam') {
         // Low branch at head height. CYAN = get under it.
         const width = w * 2.6;
+        const top = p.y - 152 * p.s;
         ctx.fillStyle = `rgba(76,201,240,${alpha})`;
-        roundRect(ctx, p.x - width / 2, p.y - 152 * p.s, width, 15 * p.s, 7 * p.s);
-        ctx.fillStyle = `rgba(76,201,240,${alpha * 0.35})`;
-        for (let i = -1; i <= 1; i += 1) {
-          roundRect(ctx, p.x + i * width * 0.3, p.y - 140 * p.s, 6 * p.s, 22 * p.s, 3 * p.s);
+        roundRect(ctx, p.x - width / 2, top, width, 14 * p.s, 7 * p.s);
+        // Foliage hanging beneath — the reason ducking is the move.
+        for (let i = -2; i <= 2; i++) {
+          const fx = p.x + i * width * 0.18;
+          ctx.beginPath();
+          ctx.ellipse(
+            fx,
+            top + (22 + Math.abs(i) * 4) * p.s,
+            13 * p.s,
+            (12 + (i % 2 === 0 ? 6 : 0)) * p.s,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fillStyle = `rgba(76,201,240,${alpha * 0.38})`;
+          ctx.fill();
+        }
+        ctx.strokeStyle = `rgba(76,201,240,${alpha * 0.6})`;
+        ctx.lineWidth = 2 * p.s;
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.moveTo(p.x + i * width * 0.28, top + 12 * p.s);
+          ctx.lineTo(p.x + i * width * 0.3, top + 34 * p.s);
+          ctx.stroke();
         }
       } else {
         // Thorn thicket filling a lane. PALE = go around it.
+        const half = w * 0.42;
+        const hgt = 88 * p.s;
+        ctx.beginPath();
+        ctx.moveTo(p.x - half, p.y);
+        const spikes = 7;
+        for (let i = 0; i <= spikes; i++) {
+          const sx = p.x - half + (i / spikes) * half * 2;
+          const peak = i % 2 === 0 ? 0.55 : 0.78 + hash(o.id * 7 + i) * 0.22;
+          ctx.lineTo(sx, p.y - hgt * peak);
+        }
+        ctx.lineTo(p.x + half, p.y);
+        ctx.closePath();
         ctx.fillStyle = `rgba(168,176,196,${alpha})`;
-        roundRect(ctx, p.x - w * 0.42, p.y - 86 * p.s, w * 0.84, 86 * p.s, 8 * p.s);
+        ctx.fill();
         ctx.fillStyle = `rgba(60,56,74,${alpha * 0.8})`;
-        roundRect(ctx, p.x - w * 0.3, p.y - 70 * p.s, w * 0.6, 44 * p.s, 6 * p.s);
+        roundRect(ctx, p.x - half * 0.72, p.y - hgt * 0.52, half * 1.44, hgt * 0.52, 6 * p.s);
+        // Crossed thorns poking out of the dark mass.
+        ctx.strokeStyle = `rgba(168,176,196,${alpha * 0.8})`;
+        ctx.lineWidth = 1.6 * p.s;
+        for (let i = 0; i < 3; i++) {
+          const tx = p.x - half * 0.4 + i * half * 0.4;
+          const ty = p.y - hgt * (0.25 + hash(o.id * 3 + i) * 0.2);
+          ctx.beginPath();
+          ctx.moveTo(tx - 7 * p.s, ty + 5 * p.s);
+          ctx.lineTo(tx + 7 * p.s, ty - 5 * p.s);
+          ctx.moveTo(tx - 6 * p.s, ty - 6 * p.s);
+          ctx.lineTo(tx + 6 * p.s, ty + 6 * p.s);
+          ctx.stroke();
+        }
       }
     }
   }
@@ -225,46 +440,121 @@ export class Scene {
       const p = this.coinPoint(c);
       if (p.y < -20 || p.y > this.h + 20) continue;
       const r = Math.max(2.5, 13 * p.s);
+      // A firefly: soft glow around a bright core, pulsing slightly.
+      const pulse = 0.8 + 0.2 * Math.sin(world.elapsed * 6 + c.group * 2.3 + c.x * 5);
+      const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 2.4);
+      glow.addColorStop(0, `rgba(255,236,150,${(0.5 + p.s * 0.4) * pulse})`);
+      glow.addColorStop(0.45, `rgba(255,226,120,${0.2 * pulse})`);
+      glow.addColorStop(1, 'rgba(255,226,120,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(p.x - r * 2.4, p.y - r * 2.4, r * 4.8, r * 4.8);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,226,120,${0.35 + p.s * 0.65})`;
+      ctx.arc(p.x, p.y, r * 0.55, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,246,200,${0.55 + p.s * 0.45})`;
       ctx.fill();
-      if (p.s > 0.5) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r + 3, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255,226,120,${(p.s - 0.5) * 0.55})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
     }
   }
 
+  /**
+   * The runner: an articulated figure, not a box. Legs scissor with the
+   * stride, tuck when airborne; the torso folds forward into a squat; Surge
+   * lifts the whole figure clear of the ground and sets it glowing. The point
+   * is feedback — every input the recogniser fires should be visible as a
+   * pose change within a frame.
+   */
   private runner(world: World, lanes: LaneModel): void {
     const ctx = this.ctx;
     const p = this.project(0, lanes.visual);
     const jump = world.airborne > 0 ? Math.sin((1 - world.airborne / 0.62) * Math.PI) : 0;
-    const duck = world.ducking > 0 ? 1 : 0;
-    const y = p.y - jump * 70;
-    const height = duck ? 30 : 52;
+    const ducked = world.ducking > 0;
+    const surging = world.surge > 0;
+    const tucked = world.airborne > 0 || surging;
 
-    // Neutral-stance ghost: players self-correct against it without being told.
-    ctx.strokeStyle = 'rgba(255,255,255,0.13)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(this.w * 0.5 - 13, p.y - 52, 26, 52);
+    // Surge is flight: the rest interval reads as being lifted clear.
+    const hover = surging ? 44 + Math.sin(world.elapsed * 5) * 6 : 0;
+    const lift = jump * 88 + hover;
+    const footY = p.y - lift;
+
+    // Shadow stays on the ground; it is what sells the height of everything.
+    const off = Math.min(1, lift / 88);
+    ctx.fillStyle = `rgba(8,4,12,${0.42 - off * 0.28})`;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + 4, 22 - off * 8, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Neutral-stance mark: where centre lane meets the ground. Players
+    // self-correct against it without being told.
+    ctx.strokeStyle = 'rgba(244,237,226,0.1)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 7]);
+    ctx.beginPath();
+    ctx.ellipse(this.w * 0.5, p.y + 4, 30, 7, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     if (world.invuln > 0 && Math.floor(world.invuln * 12) % 2 === 0) return;
 
-    ctx.fillStyle = world.surge > 0 ? '#ffd60a' : '#f4ede2';
-    ctx.fillRect(p.x - 13, y - height, 26, height);
+    const color = surging ? '#ffd60a' : '#f4ede2';
+    const phase = world.distance * 0.55;
+
+    const hipY = footY - (ducked ? 22 : 36);
+    const hipX = p.x;
+    const shoulderX = hipX + (ducked ? 15 : 6);
+    const shoulderY = hipY - (ducked ? 13 : 27);
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (surging) {
+      ctx.shadowColor = 'rgba(255,214,10,0.8)';
+      ctx.shadowBlur = 16;
+    }
+
+    // Legs: scissoring on the ground, tucked in the air.
+    ctx.lineWidth = 5.5;
+    for (const dir of [1, -1]) {
+      const swing = tucked ? 0.5 * dir : Math.sin(phase) * dir;
+      const kneeX = hipX + swing * 9 + 4;
+      const kneeY = hipY + (ducked ? 10 : 17) - Math.abs(swing) * 3;
+      ctx.beginPath();
+      ctx.moveTo(hipX, hipY);
+      if (tucked) {
+        ctx.quadraticCurveTo(kneeX + 6, kneeY, hipX + swing * 8 + 8, kneeY + 8);
+      } else {
+        ctx.quadraticCurveTo(kneeX, kneeY, hipX + swing * 15, footY - Math.max(0, -swing) * 9);
+      }
+      ctx.stroke();
+    }
+
+    // Torso.
+    ctx.lineWidth = 8;
     ctx.beginPath();
-    ctx.arc(p.x, y - height - 10, 10, 0, Math.PI * 2);
+    ctx.moveTo(hipX, hipY);
+    ctx.lineTo(shoulderX, shoulderY);
+    ctx.stroke();
+
+    // Arms, swinging opposite the legs; folded back in a squat.
+    ctx.lineWidth = 4.5;
+    for (const dir of [1, -1]) {
+      const swing = ducked ? -0.7 : Math.sin(phase + Math.PI) * dir * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(shoulderX, shoulderY + 3);
+      ctx.quadraticCurveTo(
+        shoulderX + swing * 8,
+        shoulderY + 12,
+        shoulderX + swing * 14 + 4,
+        shoulderY + (ducked ? 6 : 16) - Math.max(0, swing) * 14,
+      );
+      ctx.stroke();
+    }
+
+    // Head, leading the movement when squatting.
+    ctx.beginPath();
+    ctx.arc(shoulderX + (ducked ? 8 : 3), shoulderY - 10, 7.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Shadow sells the jump height better than the sprite does.
-    ctx.fillStyle = `rgba(0,0,0,${0.4 - jump * 0.25})`;
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y + 4, 18 - jump * 6, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   /**
@@ -339,6 +629,25 @@ export class Scene {
       ctx.lineWidth = 3;
       ctx.stroke();
     }
+  }
+
+  /** Darkened corners pull the eye to the track without touching the HUD. */
+  private vignette(): void {
+    const ctx = this.ctx;
+    const r0 = Math.min(this.w, this.h) * 0.45;
+    const r1 = Math.max(this.w, this.h) * 0.75;
+    const g = ctx.createRadialGradient(
+      this.w / 2,
+      this.h * 0.48,
+      r0,
+      this.w / 2,
+      this.h * 0.52,
+      r1,
+    );
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(5,2,10,0.38)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, this.w, this.h);
   }
 
   private hud(world: World): void {

@@ -37,6 +37,17 @@ export class Run {
   private stopped = false;
   private coaching: string | null = null;
   private resumeAt = 0;
+  private unplayableSince = 0;
+
+  /**
+   * How long tracking must be continuously lost before the run freezes.
+   * Landmark confidence flickers across its threshold for a few frames at a
+   * time — worst during fast moves, when motion blur is highest — and a pause
+   * that trips on a single frame turns that flicker into a game that freezes
+   * mid-jump every few seconds. Genuinely walking off camera still pauses well
+   * before an obstacle can arrive unseen: the telegraph floor is 1.1s.
+   */
+  private static readonly TRACKING_LOSS_MS = 700;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -106,7 +117,14 @@ export class Run {
    * the specific fix; it never costs them the run they were having.
    */
   private applyTracking(tracking: Tracking): void {
-    const blocked = !tracking.playable;
+    const now = performance.now();
+    if (tracking.playable) {
+      this.unplayableSince = 0;
+    } else if (this.unplayableSince === 0) {
+      this.unplayableSince = now;
+    }
+    const blocked =
+      this.unplayableSince !== 0 && now - this.unplayableSince >= Run.TRACKING_LOSS_MS;
     if (blocked && !this.coaching) {
       this.coaching = 'blocked';
       this.setPaused(true);

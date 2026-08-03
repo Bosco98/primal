@@ -73,6 +73,23 @@ export const ZONES = {
   SPAN_MAX: 1.1,
   /** Frames of history behind the baseline (~2s at 30Hz). */
   HISTORY: 60,
+  /**
+   * Latency compensation. The camera-to-recogniser pipeline is ~100ms behind
+   * the player's actual body, so a trigger that waits for the hips to fully
+   * cross a line fires ~100ms after the player already crossed it. Instead,
+   * once the hips are past halfway AND moving decisively toward the line, fire
+   * on where they will be in LEAD_S seconds. The halfway gate is what keeps
+   * one jittery velocity sample from firing a move from rest.
+   */
+  LEAD_S: 0.1,
+  LEAD_GATE: 0.5,
+  /**
+   * Knee visibility flickers around MediaPipe's 0.5 confidence for frames at a
+   * time — worst exactly during fast moves, when motion blur is highest. Keep
+   * trusting the geometry for this long after the last confident sighting, so
+   * a jump is not swallowed by the blur it caused.
+   */
+  KNEE_GRACE_MS: 400,
 } as const;
 
 /** Everything the controller overlay needs to draw itself. */
@@ -120,6 +137,7 @@ export class ZoneRecognizer {
   private band: Band = 0;
   private jumping = false;
   private ducking = false;
+  private kneesSeenAt = -Infinity;
   private state: ZoneState = { ...EMPTY };
 
   reset(): void {
@@ -128,6 +146,7 @@ export class ZoneRecognizer {
     this.band = 0;
     this.jumping = false;
     this.ducking = false;
+    this.kneesSeenAt = -Infinity;
     this.state = { ...EMPTY };
   }
 
@@ -168,14 +187,31 @@ export class ZoneRecognizer {
     const rise = (standY - features.hipY) / torso;
     const depth = (features.hipY - standY) / span;
 
+    // Where the hips will be in LEAD_S, from their current velocity. hipSpeedY
+    // is in torso lengths per second, y-down, so rising hips make it negative.
+    // Only used to *advance* a trigger the body is already committed to — the
+    // release conditions below stay on the raw position.
+    const vUp = Math.max(0, -(features.hipSpeedY ?? 0));
+    const vDown = Math.max(0, features.hipSpeedY ?? 0);
+    const riseAhead = rise + vUp * ZONES.LEAD_S;
+    const depthAhead = depth + (vDown * torso * ZONES.LEAD_S) / span;
+
     const events: Action[] = [];
 
+    if (features.kneesVisible) this.kneesSeenAt = features.t;
     // Knees, not ankles: these are the landmarks both lines are built from.
-    if (ready && features.kneesVisible) {
-      this.edge(events, 'JUMP', rise > ZONES.JUMP_RISE, rise > ZONES.JUMP_RELEASE, 'jumping');
+    // The grace window is what lets a jump register through its own motion blur.
+    if (ready && features.t - this.kneesSeenAt <= ZONES.KNEE_GRACE_MS) {
+      const jumpEnter =
+        rise > ZONES.JUMP_RISE ||
+        (rise > ZONES.JUMP_RISE * ZONES.LEAD_GATE && riseAhead > ZONES.JUMP_RISE);
+      const duckEnter =
+        depth > ZONES.SQUAT_DEPTH ||
+        (depth > ZONES.SQUAT_DEPTH * ZONES.LEAD_GATE && depthAhead > ZONES.SQUAT_DEPTH);
+      this.edge(events, 'JUMP', jumpEnter, rise > ZONES.JUMP_RELEASE, 'jumping');
       // No exclusion guard needed. `rise` and `depth` are the same difference
       // with opposite signs, so one is negative whenever the other is positive.
-      this.edge(events, 'DUCK', depth > ZONES.SQUAT_DEPTH, depth > ZONES.SQUAT_RELEASE, 'ducking');
+      this.edge(events, 'DUCK', duckEnter, depth > ZONES.SQUAT_RELEASE, 'ducking');
     }
 
     // The band is a position, not an event: the game reads `state.band` and

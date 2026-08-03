@@ -77,7 +77,10 @@ export class CameraPoseSource implements PoseSource {
     this.options = {
       width: options.width ?? 640,
       height: options.height ?? 480,
-      frameRate: options.frameRate ?? 30,
+      // Ideal, not exact: a 30fps webcam stays at 30, but one that can do 60
+      // halves the frame-delivery share of input latency. The busy flag in the
+      // loop already drops frames whenever inference cannot keep up.
+      frameRate: options.frameRate ?? 60,
       // Resolved against the app's base, not the server root. On GitHub Pages
       // the console lives under /primal/, where a leading-slash path would
       // 404 and take the whole pipeline down with it.

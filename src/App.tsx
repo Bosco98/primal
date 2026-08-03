@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePose } from './usePose.js';
 import { coachFor } from './control/signals.js';
 import { ControllerOverlay } from './ui/ControllerOverlay.js';
@@ -8,23 +8,63 @@ import type { RunSummary } from './types.js';
 
 type Screen = 'title' | 'framing' | 'playing' | 'summary';
 
+/** Seconds the player must hold a good frame before the run starts itself. */
+const AUTO_START_SECONDS = 3;
+
 /**
  * Four screens, in order: title, framing, run, summary.
  *
- * The framing step is the only one that might look like ceremony, and it is
- * load-bearing. Jump detection reads ankle height against a rolling ground
- * reference; with the player's feet out of frame that reference collapses to
- * the bottom of the picture and the controls quietly stop working for a reason
- * nobody could be expected to guess. So the game refuses to start until it can
- * see feet, and says why. It is a live check, not a countdown — it clears the
- * instant you step back, and there is nothing to hold still for.
+ * Everything past the title must be operable from two metres away, because
+ * that is where the player physically is: they cannot be framed by the camera
+ * and within reach of the mouse at the same time. So nothing in the camera
+ * flow requires a click. Framing starts the run by itself once the player has
+ * held a good position through a short countdown; the summary restarts on a
+ * jump; Escape (in `Stage`) quits a run. Buttons still exist for whoever *is*
+ * at the desk, but they are the fallback, never the only path.
  */
 export default function App(): React.JSX.Element {
   const [screen, setScreen] = useState<Screen>('title');
   const [showGuide, setShowGuide] = useState(false);
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [deskMode, setDeskMode] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const { status, error, tracking, video, start, stop, sinkRef, frameRef } = usePose();
+
+  // The hands-free start. Being framed *is* the ready signal: hold it and the
+  // countdown runs down; step out and it cancels. Guide open pauses it so
+  // reading the instructions doesn't launch the game behind them.
+  const armed =
+    screen === 'framing' && status === 'running' && tracking.playable && !showGuide;
+  useEffect(() => {
+    if (!armed) {
+      setCountdown(null);
+      return;
+    }
+    setCountdown(AUTO_START_SECONDS);
+    const timer = setInterval(
+      () => setCountdown((current) => (current === null ? null : current - 1)),
+      1000,
+    );
+    return () => clearInterval(timer);
+  }, [armed]);
+  useEffect(() => {
+    if (countdown === 0) {
+      setCountdown(null);
+      setScreen('playing');
+    }
+  }, [countdown]);
+
+  // The summary is also read from two metres away. The camera is still live
+  // (only Done/Back releases it), so a jump is the "again" button.
+  useEffect(() => {
+    if (screen !== 'summary' || status !== 'running') return;
+    sinkRef.current = (frame) => {
+      if (frame.actions.includes('JUMP')) setScreen('playing');
+    };
+    return () => {
+      sinkRef.current = null;
+    };
+  }, [screen, status, sinkRef]);
 
   const beginFraming = (): void => {
     setDeskMode(false);
@@ -118,19 +158,19 @@ export default function App(): React.JSX.Element {
             <>
               <div className="framing__camera">
                 <ControllerOverlay video={video} frameRef={frameRef} />
+                {countdown !== null && countdown > 0 && (
+                  <div className="framing__countdown" role="status">
+                    <span>{countdown}</span>
+                    <small>hold it there</small>
+                  </div>
+                )}
               </div>
               <p className={tracking.playable ? 'framing__status ok' : 'framing__status'}>
-                {tracking.playable ? 'Good — all of you is in frame.' : coachFor(tracking)}
+                {tracking.playable
+                  ? 'Good — hold that and the run starts by itself.'
+                  : coachFor(tracking)}
               </p>
               <div className="row">
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={!tracking.playable}
-                  onClick={() => setScreen('playing')}
-                >
-                  {tracking.playable ? 'Run' : 'Step back to start'}
-                </button>
                 <button type="button" onClick={() => setShowGuide(true)}>
                   How to play
                 </button>
@@ -172,6 +212,9 @@ export default function App(): React.JSX.Element {
           <p className="fine">
             {Math.round(summary.activeSeconds)} seconds moving · best combo ×{summary.bestCombo}
           </p>
+          {status === 'running' && !deskMode && (
+            <p className="framing__status ok">Jump to go again.</p>
+          )}
           <div className="row">
             <button type="button" className="primary" onClick={() => setScreen('playing')}>
               Again

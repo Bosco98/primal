@@ -132,6 +132,34 @@ button.link {
 .framing__status { margin: 0; color: var(--dim); font-size: 0.9rem; }
 .framing__status.ok { color: var(--grass); }
 
+/* The hands-free countdown. Sized to be read from across the room — the player
+   is standing where the camera can see their knees, not at the desk. */
+.framing__countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  background: rgba(13, 8, 24, 0.35);
+  pointer-events: none;
+}
+.framing__countdown span {
+  font-size: clamp(5rem, 22vw, 11rem);
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+}
+.framing__countdown small {
+  font-size: clamp(0.8rem, 2.4vw, 1.1rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--grass);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+}
+
 .controller-overlay { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* The run owns the screen. */
