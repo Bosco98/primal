@@ -115,6 +115,24 @@ test('thresholds land in the right place on a real body', () => {
   assert.ok(squatCm > 15 && squatCm < 30, `squat asks for ${squatCm.toFixed(1)}cm of hip drop`);
 });
 
+test('each hand keeps its own name and lands on its own side', () => {
+  // Both labels have to agree: in a mirror the player's left hand is the one on
+  // screen-left. Nothing today reads the hands individually — both consumers
+  // iterate the pair — so a swap here is invisible until the first feature that
+  // cares which hand, and then it is silently backwards.
+  const zones = standing();
+  const f = frame(STAND_HIP);
+  const body = zones.body({
+    ...f,
+    // Raw camera view: the player's left wrist sits at a HIGH image x.
+    wristLeft: { x: 0.85, y: 0.4, z: 0, visibility: 1 },
+    wristRight: { x: 0.15, y: 0.4, z: 0, visibility: 1 },
+  } as unknown as typeof f);
+
+  assert.ok(body.hands.left.x < 0.5, 'the left hand belongs on screen-left');
+  assert.ok(body.hands.right.x > 0.5, 'the right hand belongs on screen-right');
+});
+
 test('bands latch with hysteresis so a wobble is not a lane change', () => {
   const zones = standing();
   const lean = (x: number) => {

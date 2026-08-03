@@ -51,9 +51,10 @@ function alpha(cutoff: number, dt: number): number {
  * general rule for every continuous input on this platform.
  *
  * Mirroring is applied exactly once, in `zones.body()`, so `hands.right` is
- * already the hand that belongs on screen-right. Do not mirror again here —
- * double-mirroring makes everything feel subtly wrong rather than obviously
- * broken, which is far harder to notice.
+ * already the player's right hand *and* the one on screen-right — in a mirror
+ * those are the same hand. Do not mirror again here: double-mirroring makes
+ * everything feel subtly wrong rather than obviously broken, which is far
+ * harder to notice.
  */
 export class HandCursors {
   readonly left: TrackedPoint;

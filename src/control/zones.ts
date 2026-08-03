@@ -210,16 +210,19 @@ export class ZoneRecognizer {
   body(features: FrameFeatures): Body {
     const s = this.state;
     return {
+      // In a mirror the two readings of "left" coincide: the player's left hand
+      // is the one on screen-left. So `hands.left` is the player's left wrist,
+      // mirrored — and both meanings hold at once.
       hands: {
         left: {
-          x: 1 - features.wristRight.x,
-          y: features.wristRight.y,
-          visible: (features.wristRight.visibility ?? 1) > 0.4,
-        },
-        right: {
           x: 1 - features.wristLeft.x,
           y: features.wristLeft.y,
           visible: (features.wristLeft.visibility ?? 1) > 0.4,
+        },
+        right: {
+          x: 1 - features.wristRight.x,
+          y: features.wristRight.y,
+          visible: (features.wristRight.visibility ?? 1) > 0.4,
         },
       },
       center: { x: s.playerX, y: features.hipY },
